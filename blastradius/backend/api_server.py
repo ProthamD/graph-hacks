@@ -177,8 +177,8 @@ async def graph_nodes(graph: str = DEFAULT_GRAPH, limit: int = 200):
                 "type": r[2],
                 "weight": float(r[3] or 1),
             }
-            for r in (edges_res.result_set or [])
-        ]
+        node_ids = {n["id"] for n in nodes}
+        edges = [e for e in edges if e["source"] in node_ids and e["target"] in node_ids]
         if nodes:
             return {"nodes": nodes, "edges": edges}
     except Exception as e:
