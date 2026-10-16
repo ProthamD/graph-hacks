@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "falkordb-official": {
+      "command": "npx",
+      "args": ["-y", "@falkordb/mcpserver@latest"],
+      "env": {
+        "FALKORDB_HOST": "localhost",
+        "FALKORDB_PORT": "6379",
+        "FALKORDB_DEFAULT_READONLY": "true"
+      }
+    },
+    "falkordb-graphiti-memory": {
+      "url": "http://127.0.0.1:8000/sse"
+    },
+    "falkordb-queryweaver-sql": {
+      "url": "http://127.0.0.1:5000/mcp"
+    },
+    "blastradius-algos": {
+      "command": "python",
+      "args": ["backend/mcp_server.py"],
+      "env": {
+        "FALKORDB_HOST": "localhost",
+        "FALKORDB_PORT": "6379"
+      }
+    }
+  }
+}
