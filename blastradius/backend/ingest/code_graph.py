@@ -32,27 +32,37 @@ class ASTGraphExtractor(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef):
         prev_class = self.current_class
         self.current_class = node.name
+        start_line = node.lineno
+        end_line = getattr(node, "end_lineno", node.lineno + 20)
         self.classes.append({
             "id": f"{self.module_name}::{node.name}",
             "name": node.name,
             "module": self.module_name,
-            "line": node.lineno,
+            "filePath": self.file_path,
+            "startLine": start_line,
+            "endLine": end_line,
+            "line": start_line,
             "docstring": ast.get_docstring(node) or "",
         })
         self.generic_visit(node)
         self.current_class = prev_class
 
-    def visit_FunctionDef(self, node: ast.FunctionDef):
+    def _handle_func_def(self, node: Any):
         fn_id = f"{self.module_name}::{node.name}"
         if self.current_class:
             fn_id = f"{self.module_name}::{self.current_class}.{node.name}"
         
         doc = ast.get_docstring(node) or ""
+        start_line = node.lineno
+        end_line = getattr(node, "end_lineno", node.lineno + 15)
         self.functions.append({
             "id": fn_id,
             "name": node.name,
             "module": self.module_name,
-            "line": node.lineno,
+            "filePath": self.file_path,
+            "startLine": start_line,
+            "endLine": end_line,
+            "line": start_line,
             "docstring": doc,
         })
 
@@ -80,6 +90,12 @@ class ASTGraphExtractor(ast.NodeVisitor):
         self.current_function = fn_id
         self.generic_visit(node)
         self.current_function = prev_fn
+
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        self._handle_func_def(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        self._handle_func_def(node)
 
     def visit_Call(self, node: ast.Call):
         if self.current_function:
@@ -118,7 +134,7 @@ def ingest_codebase(repo_dir: str, graph_name: str = DEFAULT_GRAPH) -> Dict[str,
         except Exception:
             continue
 
-        extractor = ASTGraphExtractor(str(rel), mod_name)
+        extractor = ASTGraphExtractor(str(rel).replace("\\", "/"), mod_name)
         extractor.visit(tree)
 
         # Ingest functions
@@ -126,7 +142,9 @@ def ingest_codebase(repo_dir: str, graph_name: str = DEFAULT_GRAPH) -> Dict[str,
             g.query(
                 """
                 MERGE (f:Function {id: $id})
-                SET f.name = $name, f.module = $module, f.line = $line, f.docstring = $docstring
+                SET f.name = $name, f.module = $module, f.filePath = $filePath,
+                    f.startLine = $startLine, f.endLine = $endLine, f.line = $line,
+                    f.docstring = $docstring
                 """,
                 fn,
             )
@@ -138,7 +156,8 @@ def ingest_codebase(repo_dir: str, graph_name: str = DEFAULT_GRAPH) -> Dict[str,
             g.query(
                 """
                 MERGE (c:Class {id: $id})
-                SET c.name = $name, c.module = $module, c.line = $line
+                SET c.name = $name, c.module = $module, c.filePath = $filePath,
+                    c.startLine = $startLine, c.endLine = $endLine, c.line = $line
                 """,
                 cl,
             )
@@ -174,6 +193,56 @@ def ingest_codebase(repo_dir: str, graph_name: str = DEFAULT_GRAPH) -> Dict[str,
                     stats["calls"] += 1
 
     return stats
+
+
+def match_diff_to_symbols(diff_hunks: List[Dict[str, Any]], graph_name: str = DEFAULT_GRAPH) -> List[Dict[str, Any]]:
+    """
+    Given a list of diff hunks from a PR:
+      [{"path": "auth/validate.py", "start": 10, "end": 25}, ...]
+    Executes a FalkorDB Cypher query to identify all Functions and Classes
+    whose line ranges overlap with the diff hunks.
+    """
+    db = FalkorDB(host=HOST, port=PORT)
+    try:
+        g = db.select_graph(graph_name)
+    except Exception:
+        return []
+
+    matched = []
+    seen = set()
+
+    for h in diff_hunks:
+        path = h.get("path", "").replace("\\", "/")
+        lo = int(h.get("start", 1))
+        hi = int(h.get("end", lo + 10))
+        filename = path.split("/")[-1].replace(".py", "").replace(".ts", "")
+
+        cypher = """
+        MATCH (f:Function)
+        WHERE (f.filePath = $path OR f.filePath ENDS WITH $filename OR f.id CONTAINS $filename)
+          AND (f.startLine IS NULL OR (f.startLine <= $hi AND f.endLine >= $lo))
+        RETURN f.id AS id, f.name AS name, f.filePath AS filePath,
+               f.startLine AS startLine, f.endLine AS endLine
+        LIMIT 10
+        """
+        try:
+            res = g.query(cypher, {"path": path, "filename": filename, "lo": lo, "hi": hi})
+            for r in (res.result_set or []):
+                sym_id = str(r[0])
+                if sym_id not in seen:
+                    seen.add(sym_id)
+                    matched.append({
+                        "id": sym_id,
+                        "name": str(r[1]),
+                        "filePath": str(r[2] or path),
+                        "startLine": int(r[3] or 1),
+                        "endLine": int(r[4] or 100),
+                        "hunk": {"path": path, "start": lo, "end": hi},
+                    })
+        except Exception:
+            pass
+
+    return matched
 
 
 if __name__ == "__main__":

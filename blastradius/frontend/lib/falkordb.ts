@@ -361,6 +361,47 @@ export interface PRTriageData {
   reasons: string[];
   sandbox?: string;
   pr_comment_markdown: string;
+  depth_breakdown?: {
+    d1_will_break: string[];
+    d2_likely_affected: string[];
+    d3_transitive: string[];
+  };
+  mcp_tool_trace?: Array<{
+    tool: string;
+    server: string;
+    status: string;
+    input: Record<string, any>;
+    output_summary: string;
+    duration_ms: number;
+    engine_explain: string;
+  }>;
+  actions_taken?: {
+    github_status_check?: {
+      status: string;
+      conclusion: string;
+      check_name: string;
+      details_url: string;
+      summary: string;
+    };
+    sandbox_graph?: {
+      created: boolean;
+      graph_name: string;
+      method: string;
+      status: string;
+    };
+    reviewer_assignment?: {
+      reviewer: string;
+      role: string;
+      basis: string;
+    };
+    pr_label?: string;
+    comment_posted?: boolean;
+    episodic_memory?: {
+      session_id: string;
+      stored_in_falkordb: boolean;
+      graph: string;
+    };
+  };
   telemetry: {
     wall_ms: number;
     explain: string;

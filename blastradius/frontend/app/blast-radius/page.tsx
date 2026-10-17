@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   RiFlashlightLine, RiShieldLine, RiAlertLine, RiCheckLine,
   RiGitBranchLine, RiNodeTree, RiArrowRightLine, RiTimeLine,
@@ -62,6 +63,32 @@ export default function BlastRadiusPage() {
           Multi-hop impact analysis, policy compliance, and automated pull request action decisions powered by FalkorDB
         </p>
       </div>
+
+      {/* Banner to PR Graph Agent */}
+      <Link href="/pr-agent" style={{ textDecoration: 'none', display: 'block', marginBottom: '1.25rem' }}>
+        <div style={{
+          padding: '0.875rem 1.25rem', borderRadius: 'var(--radius-md)',
+          background: 'linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(168,85,247,0.12) 100%)',
+          border: '1px solid rgba(99,102,241,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          transition: 'all 0.2s ease', cursor: 'pointer',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '1.4rem' }}>⚡</span>
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Try the Interactive PR Graph Agent (Track 01 Core Experience)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                Features real-time 2D Graph Visualizer, 5 FastMCP Protocol Tool Traces, Depth Tiers (d1/d2/d3), and Live GitHub PR import.
+              </div>
+            </div>
+          </div>
+          <span className="btn btn-primary btn-sm" style={{ gap: '0.3rem', fontSize: '0.75rem', flexShrink: 0 }}>
+            Launch Agent <RiArrowRightLine size={14} />
+          </span>
+        </div>
+      </Link>
 
       {/* Input Controls */}
       <div className="glass-card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
