@@ -109,6 +109,13 @@ class PRTriageRequest(BaseModel):
     auto_sandbox: bool = True
 
 
+class GitHubPRRequest(BaseModel):
+    repo: str          # e.g. "owner/repo"
+    pr_number: int
+    max_hops: int = 4
+    graph: str = "blastradius"
+
+
 # ── Health ─────────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -206,6 +213,8 @@ async def graph_nodes(graph: str = DEFAULT_GRAPH, limit: int = 200):
                 "type": r[2],
                 "weight": float(r[3] or 1),
             }
+            for r in (edges_res.result_set or [])
+        ]
         node_ids = {n["id"] for n in nodes}
         edges = [e for e in edges if e["source"] in node_ids and e["target"] in node_ids]
         if nodes:
@@ -301,6 +310,109 @@ async def ingest(req: IngestRequest):
             "stats": {"functions": 48, "classes": 14, "calls": 72, "endpoints": 12},
             "graph": req.graph_name,
         }
+
+
+# ── GitHub Live PR Integration ─────────────────────────────────────────────────
+
+@app.get("/api/github/pr")
+async def fetch_github_pr(repo: str, pr_number: int):
+    """
+    Fetch a real GitHub PR's metadata and changed files.
+    Uses GITHUB_TOKEN env var for auth (optional — works on public repos without it).
+    Returns: PR title, author, changed Python/TS files, and extracted function names
+    that can be mapped onto the codebase graph.
+    """
+    import re
+    import urllib.request
+
+    token = os.getenv("GITHUB_TOKEN", "")
+    base = f"https://api.github.com/repos/{repo}/pulls/{pr_number}"
+    headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "BlastRadius-Agent/1.0"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    def gh_get(url: str):
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=6) as r:
+                return json.loads(r.read())
+        except Exception as e:
+            return {"error": str(e)}
+
+    # Fetch PR metadata
+    pr_data = gh_get(base)
+    if "error" in pr_data or "message" in pr_data:
+        # Return a structured mock if GitHub is unreachable
+        return {
+            "pr_number": pr_number,
+            "repo": repo,
+            "title": f"[Demo] Refactor authentication module",
+            "author": "alice_chen",
+            "state": "open",
+            "base_branch": "main",
+            "head_branch": f"pr-{pr_number}-refactor",
+            "changed_files": 3,
+            "additions": 42,
+            "deletions": 18,
+            "files": [
+                {"filename": "auth/validate.py", "status": "modified", "additions": 28, "deletions": 12, "patch": "@@ -10,6 +10,8 @@ def validate_jwt(token):\n+    if not algorithms:\n+        raise ValueError('algorithm list must not be empty')"},
+                {"filename": "auth/tokens.py", "status": "modified", "additions": 14, "deletions": 6},
+            ],
+            "extracted_functions": ["auth::validate_jwt", "auth::issue_token"],
+            "source": "demo_fallback",
+        }
+
+    # Fetch changed files
+    files_data = gh_get(f"{base}/files")
+    if isinstance(files_data, list):
+        files = files_data
+    else:
+        files = []
+
+    # Extract likely function/module names from changed file paths
+    extracted = []
+    fn_pattern = re.compile(r'def\s+(\w+)\s*\(', re.MULTILINE)
+    for f in files:
+        path = f.get("filename", "")
+        patch = f.get("patch", "")
+        # Map file path → module::function style
+        parts = path.replace("/", "::").replace(".py", "").replace(".ts", "").replace(".tsx", "")
+        # Try to extract function names from patch
+        fns = fn_pattern.findall(patch)
+        for fn in fns:
+            module = parts.split("::")[0] if "::" in parts else parts
+            extracted.append(f"{module}::{fn}")
+        if not fns:
+            # Fallback: use filename as a hint
+            basename = path.split("/")[-1].replace(".py", "").replace(".ts", "")
+            extracted.append(basename)
+
+    extracted = list(dict.fromkeys(extracted))  # dedupe, preserve order
+
+    return {
+        "pr_number": pr_data.get("number", pr_number),
+        "repo": repo,
+        "title": pr_data.get("title", ""),
+        "author": pr_data.get("user", {}).get("login", ""),
+        "state": pr_data.get("state", "open"),
+        "base_branch": pr_data.get("base", {}).get("ref", "main"),
+        "head_branch": pr_data.get("head", {}).get("ref", ""),
+        "changed_files": pr_data.get("changed_files", len(files)),
+        "additions": pr_data.get("additions", 0),
+        "deletions": pr_data.get("deletions", 0),
+        "files": [
+            {
+                "filename": f.get("filename"),
+                "status": f.get("status"),
+                "additions": f.get("additions", 0),
+                "deletions": f.get("deletions", 0),
+                "patch": (f.get("patch", "")[:400] + "…") if f.get("patch") else "",
+            }
+            for f in files[:10]
+        ],
+        "extracted_functions": extracted[:8],
+        "source": "github_api",
+    }
 
 
 @app.post("/api/pr/triage")

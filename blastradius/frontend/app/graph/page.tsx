@@ -23,6 +23,7 @@ interface HighlightState {
   targetId: string;
   callers: string[];
   apis: string[];
+  allAffectedIds: Set<string>; // IDs of all blast-radius nodes
 }
 
 export default function GraphPage() {
@@ -40,6 +41,7 @@ export default function GraphPage() {
   const [ingesting, setIngesting] = useState(false);
   const [ingestStatus, setIngestStatus] = useState<string | null>(null);
   const [exploitGlow, setExploitGlow] = useState(false);
+  const [shockwaveLoading, setShockwaveLoading] = useState(false);
 
   const EXPLOIT_DISPLAYS = ['/api/v1/payments/charge', 'payment::process_charge', 'requests', 'CVE-2023-32681'];
   const EXPLOIT_IDS = ['11', '25', '41', '51'];
@@ -92,21 +94,42 @@ export default function GraphPage() {
 
   const labels = [...new Set(graphData.nodes.map(n => n.label))];
 
+  // Returns whether a node is inside the current blast radius
+  function isBlastNode(node: GraphNode): boolean {
+    if (!highlightState) return false;
+    return highlightState.allAffectedIds.has(node.id) ||
+      highlightState.allAffectedIds.has(node.display || '') ||
+      (node.display || node.id).toLowerCase() === highlightState.targetId.toLowerCase();
+  }
+
+  // Returns whether a link is ENTIRELY within the blast radius (both endpoints affected)
+  function isBlastLink(link: any): boolean {
+    if (!highlightState) return false;
+    const sId = typeof link.source === 'object' ? link.source.id : String(link.source);
+    const tId = typeof link.target === 'object' ? link.target.id : String(link.target);
+    const sNode = graphData.nodes.find(n => n.id === sId);
+    const tNode = graphData.nodes.find(n => n.id === tId);
+    return isBlastNode(sNode as GraphNode) && isBlastNode(tNode as GraphNode);
+  }
+
   function getNodeColor(node: GraphNode): string {
-    // If shockwave highlight is active
+    // If shockwave highlight is active — only color the blast-radius nodes
     if (highlightState) {
       const display = (node.display || node.id).toLowerCase();
       const target = highlightState.targetId.toLowerCase();
       if (display === target || node.id === highlightState.targetId) {
-        return '#ef4444'; // Red Ground Zero
+        return '#ef4444'; // Red — Ground Zero
       }
       if (highlightState.callers.some(c => display.includes(c.toLowerCase()) || node.id === c)) {
-        return '#f59e0b'; // Amber Callers
+        return '#f59e0b'; // Amber — Upstream callers
       }
       if (highlightState.apis.some(a => display.includes(a.toLowerCase()) || node.id === a)) {
-        return '#10b981'; // Green APIs
+        return '#10b981'; // Green — Exposed APIs
       }
-      return 'rgba(100, 116, 139, 0.2)'; // Dimmed
+      if (isBlastNode(node)) {
+        return '#8b5cf6'; // Purple — other affected nodes
+      }
+      return 'rgba(100, 116, 139, 0.12)'; // Greyed out — not in blast radius
     }
 
     if (colorMode === 'label') return nodeColor(node.label);
@@ -128,18 +151,37 @@ export default function GraphPage() {
   }
 
   function handleHighlightPath(targetId: string, callers: string[], apis: string[]) {
-    setHighlightState({ targetId, callers, apis });
-    setColorMode('shockwave');
-
-    // Find target node and center view
-    const target = graphData.nodes.find(n =>
+    // Build a full set of all blast-radius node IDs
+    const allAffectedIds = new Set<string>();
+    // Add target
+    const targetNode = graphData.nodes.find(n =>
       (n.display || n.id).toLowerCase() === targetId.toLowerCase() || n.id === targetId
     );
-    if (target && graphRef.current) {
-      const nAny = target as { x?: number; y?: number };
+    if (targetNode) allAffectedIds.add(targetNode.id);
+    // Add callers
+    callers.forEach(c => {
+      const n = graphData.nodes.find(nd =>
+        (nd.display || nd.id).toLowerCase().includes(c.toLowerCase()) || nd.id === c
+      );
+      if (n) allAffectedIds.add(n.id);
+    });
+    // Add APIs
+    apis.forEach(a => {
+      const n = graphData.nodes.find(nd =>
+        (nd.display || nd.id).toLowerCase().includes(a.toLowerCase()) || nd.id === a
+      );
+      if (n) allAffectedIds.add(n.id);
+    });
+
+    setHighlightState({ targetId, callers, apis, allAffectedIds });
+    setColorMode('shockwave');
+
+    // Center view on the target node
+    if (targetNode && graphRef.current) {
+      const nAny = targetNode as { x?: number; y?: number };
       if (typeof nAny.x === 'number' && typeof nAny.y === 'number') {
         graphRef.current.centerAt(nAny.x, nAny.y, 800);
-        graphRef.current.zoom(2.2, 800);
+        graphRef.current.zoom(2.5, 800);
       }
     }
   }
@@ -434,22 +476,50 @@ export default function GraphPage() {
               <button className="btn btn-primary btn-sm" onClick={load}>Retry Query</button>
             </div>
           ) : dimensionMode === '3d' ? (
-            <ForceGraph3D
+          <ForceGraph3D
               ref={graphRef}
               graphData={filteredData}
               nodeId="id"
               nodeLabel="display"
-              nodeColor={(n: any) => (exploitGlow && isExploitNode(n)) ? '#ef4444' : getNodeColor(n as GraphNode)}
-              nodeVal={(n: any) => (exploitGlow && isExploitNode(n)) ? 10 : nodeSize(n.pagerank ?? 0, n.betweenness ?? 0)}
-              linkColor={(link: any) => {
-                if (exploitGlow && isExploitLink(link)) return '#ef4444';
-                return highlightState ? 'rgba(239,68,68,0.4)' : 'rgba(99,102,241,0.25)';
+              nodeColor={(n: any) => {
+                if (exploitGlow && isExploitNode(n)) return '#ef4444';
+                const c = getNodeColor(n as GraphNode);
+                // Three.js needs hex or rgb — convert rgba dimmed to solid dark for non-blast
+                if (c.startsWith('rgba')) return '#1e2535';
+                return c;
               }}
-              linkWidth={(link: any) => (exploitGlow && isExploitLink(link)) ? 3.5 : (highlightState ? 2 : 1)}
-              linkDirectionalParticles={(link: any) => (exploitGlow && isExploitLink(link)) ? 5 : (highlightState ? 4 : 0)}
-              linkDirectionalParticleSpeed={(link: any) => (exploitGlow && isExploitLink(link)) ? 0.008 : 0.015}
-              linkDirectionalParticleColor={(link: any) => (exploitGlow && isExploitLink(link)) ? '#ef4444' : '#f59e0b'}
-              backgroundColor="transparent"
+              nodeVal={(n: any) => {
+                if (exploitGlow && isExploitNode(n)) return 10;
+                if (highlightState && (n.display || n.id).toLowerCase() === highlightState.targetId.toLowerCase()) return 22;
+                if (highlightState && isBlastNode(n as GraphNode)) return 12;
+                if (highlightState) return 2; // shrink non-blast nodes in 3D
+                return nodeSize(n.pagerank ?? 0, n.betweenness ?? 0);
+              }}
+              nodeOpacity={0.9}
+              linkColor={(link: any) => {
+                if (exploitGlow && isExploitNode(typeof link.source === 'object' ? link.source : {id: link.source})) return '#ef4444';
+                if (highlightState && isBlastLink(link)) return '#ef4444';
+                if (highlightState) return '#1a2030'; // dark, nearly invisible for non-blast
+                return '#6366f1';
+              }}
+              linkWidth={(link: any) => {
+                if (exploitGlow && isExploitNode(typeof link.source === 'object' ? link.source : {id: link.source})) return 2;
+                if (highlightState && isBlastLink(link)) return 2;
+                return 0.5;
+              }}
+              linkOpacity={(link: any) => {
+                if (highlightState && isBlastLink(link)) return 0.9;
+                if (highlightState) return 0.05;
+                return 0.3;
+              }}
+              linkDirectionalParticles={(link: any) => {
+                if (exploitGlow && isExploitNode(typeof link.source === 'object' ? link.source : {id: link.source})) return 4;
+                if (highlightState && isBlastLink(link)) return 4;
+                return 0;
+              }}
+              linkDirectionalParticleSpeed={0.015}
+              linkDirectionalParticleColor={() => '#f59e0b'}
+              backgroundColor="#060b18"
               onNodeClick={(n: any) => setSelectedNode(n as GraphNode)}
             />
           ) : (
@@ -459,52 +529,88 @@ export default function GraphPage() {
               nodeId="id"
               nodeLabel="display"
               nodeColor={(n: any) => (exploitGlow && isExploitNode(n)) ? '#ef4444' : getNodeColor(n as GraphNode)}
-              nodeVal={(n: any) => (exploitGlow && isExploitNode(n)) ? 10 : nodeSize(n.pagerank ?? 0, n.betweenness ?? 0)}
+              nodeVal={(n: any) => {
+                if (exploitGlow && isExploitNode(n)) return 10;
+                if (highlightState && (n.display || n.id).toLowerCase() === highlightState?.targetId.toLowerCase()) return 18;
+                if (highlightState && isBlastNode(n as GraphNode)) return 10;
+                return nodeSize(n.pagerank ?? 0, n.betweenness ?? 0);
+              }}
               linkColor={(link: any) => {
                 if (exploitGlow && isExploitLink(link)) return '#ef4444';
-                return highlightState ? 'rgba(239,68,68,0.35)' : 'rgba(99,102,241,0.2)';
+                if (highlightState && isBlastLink(link)) return 'rgba(239,68,68,0.85)';
+                if (highlightState) return 'rgba(100,116,139,0.07)'; // dim non-blast edges
+                return 'rgba(99,102,241,0.2)';
               }}
-              linkWidth={(link: any) => (exploitGlow && isExploitLink(link)) ? 3.5 : (highlightState ? 2 : 1)}
-              linkDirectionalParticles={(link: any) => (exploitGlow && isExploitLink(link)) ? 5 : (highlightState ? 4 : 0)}
-              linkDirectionalParticleSpeed={(link: any) => (exploitGlow && isExploitLink(link)) ? 0.008 : 0.015}
+              linkWidth={(link: any) => {
+                if (exploitGlow && isExploitLink(link)) return 3.5;
+                if (highlightState && isBlastLink(link)) return 2.5;
+                return 0.8;
+              }}
+              linkDirectionalParticles={(link: any) => {
+                if (exploitGlow && isExploitLink(link)) return 5;
+                if (highlightState && isBlastLink(link)) return 5;
+                return 0;
+              }}
+              linkDirectionalParticleSpeed={0.015}
               linkDirectionalParticleColor={(link: any) => (exploitGlow && isExploitLink(link)) ? '#ef4444' : '#f59e0b'}
               backgroundColor="transparent"
               onNodeClick={(n: any) => setSelectedNode(n as GraphNode)}
               nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
                 const label = node.display || node.id;
                 const fontSize = 10 / globalScale;
-                const r = nodeSize(node.pagerank ?? 0, node.betweenness ?? 0);
+                const baseR = nodeSize(node.pagerank ?? 0, node.betweenness ?? 0);
                 const x = (node as { x?: number }).x ?? 0;
                 const y = (node as { y?: number }).y ?? 0;
-                const isTarget = highlightState && (
+                const color = getNodeColor(node as GraphNode);
+
+                const isGZ = highlightState && (
                   (node.display || node.id).toLowerCase() === highlightState.targetId.toLowerCase() ||
                   node.id === highlightState.targetId
                 );
+                const isActive = highlightState && isBlastNode(node as GraphNode);
+                const isDimmed = highlightState && !isGZ && !isActive;
 
+                const r = isGZ ? baseR * 1.8 : isActive ? baseR * 1.2 : baseR;
+
+                // Glow for blast radius nodes
+                if (isGZ) {
+                  ctx.shadowBlur = 22;
+                  ctx.shadowColor = '#ef4444';
+                } else if (isActive) {
+                  ctx.shadowBlur = 10;
+                  ctx.shadowColor = color;
+                } else {
+                  ctx.shadowBlur = 0;
+                }
+
+                ctx.globalAlpha = isDimmed ? 0.12 : 1.0;
                 ctx.beginPath();
-                ctx.arc(x, y, isTarget ? r * 1.5 : r, 0, 2 * Math.PI);
-                ctx.fillStyle = getNodeColor(node as GraphNode);
+                ctx.arc(x, y, r, 0, 2 * Math.PI);
+                ctx.fillStyle = isDimmed ? '#1e2535' : color;
                 ctx.fill();
 
-                if (isTarget) {
-                  // Glowing red halo
+                // Animated ring on ground zero
+                if (isGZ) {
+                  ctx.globalAlpha = 0.55;
                   ctx.beginPath();
-                  ctx.arc(x, y, r * 2.2, 0, 2 * Math.PI);
-                  ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
-                  ctx.lineWidth = 2 / globalScale;
+                  ctx.arc(x, y, r * 1.9, 0, 2 * Math.PI);
+                  ctx.strokeStyle = '#ef4444';
+                  ctx.lineWidth = 1.5 / globalScale;
                   ctx.stroke();
                 }
 
-                ctx.shadowBlur = isTarget ? 15 : 6;
-                ctx.shadowColor = getNodeColor(node as GraphNode);
-
-                if (globalScale > 1.2 || isTarget) {
-                  ctx.font = `${isTarget ? fontSize * 1.2 : fontSize}px Inter`;
-                  ctx.fillStyle = isTarget ? '#ff4d4d' : '#e2e8f0';
-                  ctx.textAlign = 'center';
-                  ctx.fillText(label.split('::').pop() || label, x, y + r + fontSize + 2);
-                }
                 ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1.0;
+
+                // Labels
+                if (isGZ || isActive || (!isDimmed && globalScale > 1.4)) {
+                  ctx.font = `${isGZ ? fontSize * 1.3 : fontSize}px Inter`;
+                  ctx.fillStyle = isGZ ? '#ff6b6b' : isActive ? '#e2e8f0' : '#94a3b8';
+                  ctx.globalAlpha = isDimmed ? 0.15 : 1.0;
+                  ctx.textAlign = 'center';
+                  ctx.fillText(label.split('::').pop()?.split('/').pop() || label, x, y + r + fontSize + 2);
+                  ctx.globalAlpha = 1.0;
+                }
               }}
             />
           )}
@@ -550,13 +656,35 @@ export default function GraphPage() {
               {selectedNode.label === 'Function' && (
                 <button
                   className="btn btn-danger btn-sm"
-                  style={{ width: '100%', fontSize: '0.72rem', gap: '0.3rem' }}
-                  onClick={() => {
+                  style={{ width: '100%', fontSize: '0.72rem', gap: '0.3rem', position: 'relative' }}
+                  disabled={shockwaveLoading}
+                  onClick={async () => {
+                    setShockwaveLoading(true);
                     setActiveTab('shockwave');
-                    handleHighlightPath(selectedNode.display || selectedNode.id, [], []);
+                    try {
+                      // Fetch real multi-hop blast radius from the API
+                      const fnId = selectedNode.display || selectedNode.id;
+                      const res = await runTool('blast_radius', {
+                        function_id: fnId,
+                        max_hops: 4,
+                        graph: 'blastradius',
+                      });
+                      const row = res?.rows?.[0] || [];
+                      // Backend blast_radius: [target, pagerank, callers[], apis[], adrs[], count]
+                      const callers: string[] = Array.isArray(row[2]) ? (row[2] as string[]) : [];
+                      const apis: string[] = Array.isArray(row[3]) ? (row[3] as string[]) : [];
+                      handleHighlightPath(fnId, callers, apis);
+                    } catch {
+                      // Fallback: highlight just this node
+                      handleHighlightPath(selectedNode.display || selectedNode.id, [], []);
+                    } finally {
+                      setShockwaveLoading(false);
+                    }
                   }}
                 >
-                  <RiFlashlightLine size={12} /> Simulate Outage Shockwave
+                  {shockwaveLoading
+                    ? <><RiLoader4Line size={12} className="spin" /> Querying blast radius...</>
+                    : <><RiFlashlightLine size={12} /> Simulate Outage Shockwave</>}
                 </button>
               )}
             </div>

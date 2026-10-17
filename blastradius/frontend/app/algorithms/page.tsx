@@ -353,17 +353,172 @@ export default function AlgorithmsPage() {
 
                 {/* Telemetry & Results */}
                 {result && (
-                  <div style={{
-                    padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border)', fontSize: '0.75rem',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: 'var(--success)' }}>
-                      <span>Rows: {rows.length}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)' }}>⚡ Engine: {result.engine_ms || 0.8} ms · Wall: {result.wall_ms || 1.1} ms</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {/* Telemetry bar */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '0.5rem 0.75rem', background: 'rgba(0,0,0,0.35)',
+                      borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.06)',
+                    }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--success)' }}>Rows: {rows.length}</span>
+                      <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>
+                        ⚡ Engine: {result.engine_ms || 0.8} ms · Wall: {result.wall_ms || 1.1} ms
+                      </span>
                     </div>
-                    <div style={{ maxHeight: 120, overflowY: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                      {JSON.stringify(rows.slice(0, 5), null, 2)}
-                    </div>
+
+                    {/* Community Detection — visual cluster cards */}
+                    {algo.id === 'detect_communities' && rows.length > 0 && (() => {
+                      const CLUSTER_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#ec4899','#8b5cf6','#06b6d4'];
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {rows.slice(0, 6).map((row: any, i: number) => {
+                            const communityId = row[0];
+                            const members: string[] = Array.isArray(row[1]) ? row[1] : (typeof row[1] === 'number' ? [] : []);
+                            const count = typeof row[1] === 'number' ? row[1] : members.length;
+                            const color = CLUSTER_COLORS[i % CLUSTER_COLORS.length];
+                            return (
+                              <div key={i} style={{
+                                padding: '0.65rem 0.75rem', borderRadius: 'var(--radius-sm)',
+                                background: `${color}0f`, border: `1px solid ${color}30`,
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color }}>Community #{communityId}</span>
+                                  <span style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                                    {count} node{count !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                                {members.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                    {members.slice(0, 5).map((m: string, j: number) => (
+                                      <span key={j} style={{
+                                        fontSize: '0.65rem', padding: '0.15rem 0.4rem', borderRadius: 3,
+                                        background: `${color}18`, color,
+                                        fontFamily: 'var(--font-mono)',
+                                      }}>{m}</span>
+                                    ))}
+                                    {members.length > 5 && (
+                                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', padding: '0.15rem 0.35rem' }}>
+                                        +{members.length - 5} more
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Centrality — ranked bar chart */}
+                    {algo.id === 'compute_centrality' && rows.length > 0 && (() => {
+                      const sorted = [...rows].sort((a: any, b: any) => (b[1] || 0) - (a[1] || 0));
+                      const max = sorted[0]?.[1] || 1;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          {sorted.slice(0, 8).map((row: any, i: number) => {
+                            const fnId = String(row[0] || 'unknown');
+                            const betweenness = typeof row[1] === 'number' ? row[1] : 0;
+                            const pct = Math.min(100, (betweenness / max) * 100);
+                            return (
+                              <div key={i}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.2rem' }}>
+                                  <span style={{ fontFamily: 'var(--font-mono)', color: i === 0 ? '#ef4444' : 'var(--text-primary)', fontWeight: i === 0 ? 700 : 400 }}>
+                                    #{i + 1} {fnId}
+                                  </span>
+                                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--danger)', fontWeight: 600 }}>
+                                    {betweenness.toFixed(2)}
+                                  </span>
+                                </div>
+                                <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#ef4444,#f59e0b)', borderRadius: 3, transition: 'width 0.5s ease' }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Blast Radius — visual impact summary with hop layers */}
+                    {algo.id === 'blast_radius' && rows.length > 0 && (() => {
+                      const row = rows[0] || [];
+                      const target = String(row[0] || 'unknown');
+                      const callers: string[] = Array.isArray(row[1]) ? row[1] : (Array.isArray(row[3]) ? row[3] : []);
+                      const apis: string[] = Array.isArray(row[2]) ? row[2] : (Array.isArray(row[4]) ? row[4] : []);
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {/* Ground zero */}
+                          <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.2rem' }}>🎯 Ground Zero</div>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: '#fff', fontWeight: 600 }}>{target}</div>
+                          </div>
+                          {/* Upstream callers */}
+                          {callers.length > 0 && (
+                            <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                              <div style={{ fontSize: '0.65rem', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                ↑ Upstream Callers ({callers.length} affected)
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                {callers.slice(0, 8).map((c: string, i: number) => (
+                                  <span key={i} style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', borderRadius: 3, background: 'rgba(245,158,11,0.15)', color: '#fbbf24', fontFamily: 'var(--font-mono)' }}>{c}</span>
+                                ))}
+                                {callers.length > 8 && <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>+{callers.length - 8}</span>}
+                              </div>
+                            </div>
+                          )}
+                          {/* Exposed APIs */}
+                          {apis.length > 0 && (
+                            <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                              <div style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                🚨 Exposed Public APIs ({apis.length})
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                {apis.map((a: string, i: number) => (
+                                  <span key={i} style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', borderRadius: 3, background: 'rgba(16,185,129,0.12)', color: '#34d399', fontFamily: 'var(--font-mono)' }}>{a}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {callers.length === 0 && apis.length === 0 && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem' }}>
+                              No upstream callers found — function is a leaf node
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Exploit Path (SPpaths) — chain visualizer */}
+                    {algo.id === 'cve_exploit_chain' && rows.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        {rows.slice(0, 3).map((row: any, i: number) => {
+                          const chain: string[] = Array.isArray(row[3]) ? row[3] : [];
+                          return (
+                            <div key={i} style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                              <div style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700, marginBottom: '0.35rem' }}>
+                                Path #{i + 1} · Weight: {row[2] || 'N/A'}
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.2rem' }}>
+                                {chain.map((node: string, j: number) => (
+                                  <span key={j} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                                    <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.35rem', borderRadius: 3, background: 'rgba(239,68,68,0.12)', color: '#f87171', fontFamily: 'var(--font-mono)' }}>{node}</span>
+                                    {j < chain.length - 1 && <span style={{ color: 'var(--danger)', fontSize: '0.65rem' }}>→</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Generic fallback for other tools */}
+                    {!['detect_communities','compute_centrality','blast_radius','cve_exploit_chain'].includes(algo.id) && (
+                      <div style={{ maxHeight: 120, overflowY: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-secondary)', padding: '0.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--radius-sm)' }}>
+                        {JSON.stringify(rows.slice(0, 5), null, 2)}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

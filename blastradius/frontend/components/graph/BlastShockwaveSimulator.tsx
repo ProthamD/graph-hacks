@@ -1,16 +1,14 @@
 'use client';
 import { useState } from 'react';
 import {
-  RiFlashlightLine, RiPlayLine, RiRestartLine, RiAlertLine,
-  RiGlobalLine, RiFileTextLine, RiUserLine, RiTerminalLine, RiTimeLine,
-  RiArrowRightLine,
+  RiFlashlightLine, RiPlayLine, RiRestartLine,
+  RiTerminalLine, RiLoader4Line,
 } from 'react-icons/ri';
 import { runTool } from '@/lib/falkordb';
 
 export interface ShockwaveResult {
   target: string;
   prScore: number;
-  community: number;
   callers: string[];
   apis: string[];
   adrs: string[];
@@ -25,11 +23,31 @@ interface BlastShockwaveSimulatorProps {
 }
 
 const PRESETS = [
-  { id: 'auth::validate_jwt', label: 'auth::validate_jwt', type: 'Security Core', risk: 'Critical', hops: 4 },
-  { id: 'payment::process_charge', label: 'payment::process_charge', type: 'Revenue Core', risk: 'High', hops: 3 },
-  { id: 'gateway::route_request', label: 'gateway::route_request', type: 'Gateway Bridge', risk: 'High', hops: 3 },
-  { id: 'inventory::check_stock', label: 'inventory::check_stock', type: 'Service Worker', risk: 'Medium', hops: 2 },
+  { id: 'auth::validate_jwt',       label: 'auth::validate_jwt',       type: 'Security Core',    risk: 'Critical', hops: 4 },
+  { id: 'payment::process_charge',  label: 'payment::process_charge',  type: 'Revenue Core',     risk: 'High',     hops: 3 },
+  { id: 'gateway::route_request',   label: 'gateway::route_request',   type: 'Gateway Bridge',   risk: 'High',     hops: 3 },
+  { id: 'inventory::check_stock',   label: 'inventory::check_stock',   type: 'Service Worker',   risk: 'Medium',   hops: 2 },
 ];
+
+// Fallback callers/apis per function when API is offline
+const FALLBACK: Record<string, { callers: string[]; apis: string[] }> = {
+  'auth::validate_jwt': {
+    callers: ['gateway::route_request', 'payment::process_charge'],
+    apis: ['/api/v1/auth/login', '/api/v1/payments/charge'],
+  },
+  'payment::process_charge': {
+    callers: ['gateway::route_request'],
+    apis: ['/api/v1/payments/charge', '/api/v1/orders/checkout'],
+  },
+  'gateway::route_request': {
+    callers: [],
+    apis: ['/api/v1/auth/login', '/api/v1/payments/charge'],
+  },
+  'inventory::check_stock': {
+    callers: ['payment::process_charge'],
+    apis: ['/api/v1/inventory/items'],
+  },
+};
 
 export function BlastShockwaveSimulator({ onHighlightPath, onResetHighlight }: BlastShockwaveSimulatorProps) {
   const [selectedFn, setSelectedFn] = useState('auth::validate_jwt');
@@ -41,7 +59,7 @@ export function BlastShockwaveSimulator({ onHighlightPath, onResetHighlight }: B
 
   async function triggerSimulation() {
     setRunning(true);
-    setStage(1); // Stage 1: Ground Zero
+    setStage(1);
     setResult(null);
 
     try {
@@ -51,40 +69,35 @@ export function BlastShockwaveSimulator({ onHighlightPath, onResetHighlight }: B
         graph: 'blastradius',
       });
 
+      // Backend returns: [target, pagerank, callers[], apis[], adrs[], count]
       const row = res?.rows?.[0] || [];
+      const fb = FALLBACK[selectedFn] || { callers: [], apis: [] };
+
       const parsed: ShockwaveResult = {
-        target: typeof row[0] === 'string' ? row[0] : (String(row[0] || '') || selectedFn),
-        prScore: typeof row[1] === 'number' ? row[1] : 2.8,
-        community: typeof row[2] === 'number' ? row[2] : 1,
-        callers: Array.isArray(row[3]) && row[3].length > 0
-          ? (row[3] as string[])
-          : (selectedFn === 'auth::validate_jwt' ? ['gateway::route_request', 'payment::process_charge'] : ['gateway::route_request']),
-        apis: Array.isArray(row[4]) && row[4].length > 0
-          ? (row[4] as string[])
-          : (selectedFn === 'auth::validate_jwt' ? ['/api/v1/auth/login', '/api/v1/payments/charge'] : ['/api/v1/auth/login']),
-        adrs: Array.isArray(row[5]) && row[5].length > 0
-          ? (row[5] as string[])
-          : ['ADR-001 Zero-Trust Auth'],
-        callerCount: typeof row[6] === 'number' ? row[6] : 2,
-        wallMs: res?.wall_ms || 1.15,
-        explain: res?.explain || 'FalkorDB index scan on Function(id) -> CALLS*1..4 upstream traversal',
+        target:      typeof row[0] === 'string' ? row[0] : selectedFn,
+        prScore:     typeof row[1] === 'number' ? row[1] : 2.8,
+        callers:     Array.isArray(row[2]) && row[2].length > 0 ? (row[2] as string[]) : fb.callers,
+        apis:        Array.isArray(row[3]) && row[3].length > 0 ? (row[3] as string[]) : fb.apis,
+        adrs:        Array.isArray(row[4]) && row[4].length > 0 ? (row[4] as string[]) : ['ADR-001'],
+        callerCount: typeof row[5] === 'number' ? row[5] : fb.callers.length,
+        wallMs:      res?.wall_ms || 1.15,
+        explain:     res?.explain || 'FalkorDB index scan on Function(id) → CALLS*1..N upstream traversal',
       };
 
       setResult(parsed);
 
-      // Cascade animation stages
-      setTimeout(() => setStage(2), 300); // Stage 2: Upstream callers
-      setTimeout(() => setStage(3), 600); // Stage 3: Public APIs
-      setTimeout(() => setStage(4), 900); // Stage 4: ADR Governance
+      setTimeout(() => setStage(2), 350);
+      setTimeout(() => setStage(3), 700);
+      setTimeout(() => setStage(4), 1050);
       setTimeout(() => {
-        setStage(5); // Complete
+        setStage(5);
         setRunning(false);
         if (onHighlightPath) {
           onHighlightPath(parsed.target, parsed.callers, parsed.apis);
         }
-      }, 1200);
+      }, 1400);
 
-    } catch (err) {
+    } catch {
       setRunning(false);
       setStage(0);
     }
@@ -96,230 +109,206 @@ export function BlastShockwaveSimulator({ onHighlightPath, onResetHighlight }: B
     if (onResetHighlight) onResetHighlight();
   }
 
+  const STAGE_CARDS = [
+    {
+      label: 'Ground Zero',
+      color: 'var(--danger)',
+      bg: 'rgba(239,68,68,0.13)',
+      border: 'rgba(239,68,68,0.4)',
+      value: result ? result.target.split('::')[1] || result.target : selectedFn.split('::')[1],
+      sub: `PR: ${result?.prScore ?? '—'}`,
+      active: stage >= 1,
+    },
+    {
+      label: 'Hop 1: Callers',
+      color: 'var(--accent)',
+      bg: 'rgba(245,158,11,0.13)',
+      border: 'rgba(245,158,11,0.4)',
+      value: result ? `${result.callers.length} fn${result.callers.length !== 1 ? 's' : ''}` : '…',
+      sub: 'Direct Dependents',
+      active: stage >= 2,
+    },
+    {
+      label: 'Hop 2: APIs',
+      color: 'var(--danger)',
+      bg: 'rgba(239,68,68,0.13)',
+      border: 'rgba(239,68,68,0.35)',
+      value: result ? `${result.apis.length} route${result.apis.length !== 1 ? 's' : ''}` : '…',
+      sub: 'Public Breach Risk',
+      active: stage >= 3,
+    },
+    {
+      label: 'Governance',
+      color: 'var(--info)',
+      bg: 'rgba(59,130,246,0.13)',
+      border: 'rgba(59,130,246,0.35)',
+      value: result?.adrs?.[0] ? 'ADR Breach' : 'Compliant',
+      sub: result?.adrs?.[0] ?? 'No violations',
+      active: stage >= 4,
+    },
+  ];
+
   return (
-    <div className="glass-card" style={{ padding: '1.25rem', border: '1px solid rgba(239,68,68,0.25)', position: 'relative', overflow: 'hidden' }}>
-      {/* Decorative pulse glow when active */}
+    <div className="glass-card" style={{ padding: '1rem', border: '1px solid rgba(239,68,68,0.2)', position: 'relative', overflow: 'hidden' }}>
       {stage > 0 && (
         <div style={{
-          position: 'absolute', top: -50, right: -50, width: 120, height: 120,
-          background: 'radial-gradient(circle, rgba(239,68,68,0.25) 0%, transparent 70%)',
+          position: 'absolute', top: -40, right: -40, width: 100, height: 100,
+          background: 'radial-gradient(circle, rgba(239,68,68,0.2) 0%, transparent 70%)',
           borderRadius: '50%', pointerEvents: 'none', animation: 'pulse 1.5s infinite',
         }} />
       )}
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <RiFlashlightLine size={18} style={{ color: 'var(--danger)' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <RiFlashlightLine size={15} style={{ color: 'var(--danger)', flexShrink: 0 }} />
           <div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Live Blast Radius Shockwave Simulator
-            </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              Propagates upstream failure shockwaves across FalkorDB call graph
-            </div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Blast Radius Shockwave</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Multi-hop upstream failure simulation</div>
           </div>
         </div>
         <button
           className="btn btn-ghost btn-sm"
           onClick={() => setViewCypher(!viewCypher)}
-          style={{ fontSize: '0.72rem', gap: '0.3rem' }}
+          style={{ fontSize: '0.65rem', gap: '0.25rem', padding: '0.2rem 0.5rem' }}
         >
-          <RiTerminalLine size={12} /> {viewCypher ? 'Hide Cypher' : 'View Cypher'}
+          <RiTerminalLine size={11} /> {viewCypher ? 'Hide' : 'Cypher'}
         </button>
       </div>
 
-      {/* Preset target selector */}
-      <div style={{ marginBottom: '1rem' }}>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Select Break Target / Function to Modify:
+      {/* Preset selector — single column to avoid overflow */}
+      <div style={{ marginBottom: '0.75rem' }}>
+        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Break Target:
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
           {PRESETS.map(p => (
             <button
               key={p.id}
               onClick={() => { setSelectedFn(p.id); setMaxHops(p.hops); }}
               style={{
-                textAlign: 'left', padding: '0.6rem 0.75rem', borderRadius: 'var(--radius-sm)',
+                textAlign: 'left', padding: '0.45rem 0.6rem', borderRadius: 'var(--radius-sm)',
                 border: selectedFn === p.id ? '1px solid var(--danger)' : '1px solid var(--border)',
                 background: selectedFn === p.id ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.02)',
-                cursor: 'pointer', transition: 'all 0.15s ease',
+                cursor: 'pointer', transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: selectedFn === p.id ? 'var(--danger)' : 'var(--text-primary)' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 600, color: selectedFn === p.id ? 'var(--danger)' : 'var(--text-primary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.label}
-                </span>
-                <span style={{
-                  fontSize: '0.62rem', padding: '0.1rem 0.35rem', borderRadius: 3,
-                  background: p.risk === 'Critical' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
-                  color: p.risk === 'Critical' ? 'var(--danger)' : 'var(--accent)',
-                }}>
-                  {p.risk}
-                </span>
+                </div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.type} · {p.hops} hops</div>
               </div>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                {p.type} · {p.hops} max hops
-              </div>
+              <span style={{
+                fontSize: '0.58rem', padding: '0.1rem 0.3rem', borderRadius: 3, flexShrink: 0,
+                background: p.risk === 'Critical' ? 'rgba(239,68,68,0.2)' : p.risk === 'High' ? 'rgba(245,158,11,0.2)' : 'rgba(139,92,246,0.2)',
+                color: p.risk === 'Critical' ? 'var(--danger)' : p.risk === 'High' ? 'var(--accent)' : '#8b5cf6',
+              }}>
+                {p.risk}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Action triggers */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-        <button
-          className="btn btn-danger"
-          onClick={triggerSimulation}
-          disabled={running}
-          style={{ flex: 1, gap: '0.4rem', fontWeight: 600 }}
-        >
-          <RiPlayLine size={16} className={running ? 'spin' : ''} />
-          {running ? 'Traversing Call Graph...' : `Trigger Shockwave on ${selectedFn.split('::')[1] || selectedFn}`}
-        </button>
-        {result && (
-          <button className="btn btn-outline" onClick={handleReset} style={{ gap: '0.3rem' }}>
-            <RiRestartLine size={14} /> Reset
-          </button>
-        )}
-      </div>
-
-      {/* Cypher Inspector toggle */}
+      {/* Cypher */}
       {viewCypher && (
         <div style={{
-          marginBottom: '1rem', padding: '0.75rem', background: 'rgba(0,0,0,0.5)',
-          borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.08)',
-          fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-secondary)',
+          marginBottom: '0.75rem', padding: '0.6rem', background: 'rgba(0,0,0,0.5)',
+          borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.07)',
+          fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--text-secondary)',
+          overflowX: 'auto',
         }}>
-          <div style={{ color: 'var(--primary-light)', marginBottom: '0.3rem', fontWeight: 600 }}>// FalkorDB Multi-Hop Cypher</div>
-          <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-{`MATCH (target:Function {id: '${selectedFn}'})
-OPTIONAL MATCH path = (caller:Function)-[:CALLS*1..${maxHops}]->(target)
-OPTIONAL MATCH (ep:API_Endpoint)-[:ROUTES_TO]->(caller)
-OPTIONAL MATCH (adr:ArchitectureDoc)-[:GOVERNS]->(target)
-RETURN target.id, target.pagerank_score,
-       collect(DISTINCT caller.id) AS callers,
-       collect(DISTINCT ep.route) AS apis,
-       collect(DISTINCT adr.doc_id) AS adrs`}
+          <div style={{ color: 'var(--primary-light)', fontWeight: 600, marginBottom: '0.25rem' }}>// FalkorDB Multi-Hop Cypher</div>
+          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+{`MATCH (t:Function {id: '${selectedFn}'})
+OPTIONAL MATCH p=(c:Function)-[:CALLS*1..${maxHops}]->(t)
+OPTIONAL MATCH (ep:API_Endpoint)-[:ROUTES_TO]->(c)
+OPTIONAL MATCH (adr:ArchitectureDoc)-[:GOVERNS]->(t)
+RETURN t.id, t.pagerank_score,
+  collect(DISTINCT c.id) AS callers,
+  collect(DISTINCT ep.route) AS apis,
+  collect(DISTINCT adr.doc_id) AS adrs`}
           </pre>
         </div>
       )}
 
-      {/* Visual Shockwave Cascade Stages */}
+      {/* Action button */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: stage > 0 ? '0.75rem' : 0 }}>
+        <button
+          className="btn btn-danger"
+          onClick={triggerSimulation}
+          disabled={running}
+          style={{ flex: 1, gap: '0.35rem', fontWeight: 600, fontSize: '0.78rem', justifyContent: 'center' }}
+        >
+          {running ? <RiLoader4Line size={14} className="spin" /> : <RiPlayLine size={14} />}
+          {running ? 'Traversing…' : `Trigger on ${selectedFn.split('::')[1] || selectedFn}`}
+        </button>
+        {result && (
+          <button className="btn btn-outline btn-sm" onClick={handleReset} style={{ gap: '0.25rem', fontSize: '0.72rem' }}>
+            <RiRestartLine size={13} /> Reset
+          </button>
+        )}
+      </div>
+
+      {/* Cascade stages — 2×2 grid so nothing overflows */}
       {stage > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-          {/* Shockwave Telemetry Header */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          {/* Status bar */}
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '0.5rem 0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--radius-sm)',
+            padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--radius-sm)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 600 }}>
-              <span className="live-dot" /> Shockwave Status: {stage === 5 ? 'COMPLETED' : `EXPANDING (HOP ${stage - 1})`}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 600 }}>
+              <span className="live-dot" />
+              {stage === 5 ? 'COMPLETED' : `EXPANDING (HOP ${stage - 1})`}
             </div>
             {result && (
-              <div style={{ fontSize: '0.72rem', color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>
-                ⚡ {result.wallMs}ms engine latency
+              <div style={{ fontSize: '0.65rem', color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>
+                ⚡ {result.wallMs}ms
               </div>
             )}
           </div>
 
-          {/* Cascade Hop Pipeline */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
-            {/* Hop 0: Ground Zero */}
-            <div style={{
-              padding: '0.6rem', borderRadius: 'var(--radius-sm)',
-              background: stage >= 1 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.02)',
-              border: stage >= 1 ? '1px solid var(--danger)' : '1px solid var(--border)',
-              transition: 'all 0.3s ease',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700, textTransform: 'uppercase' }}>
-                Ground Zero
+          {/* 2×2 stage grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+            {STAGE_CARDS.map((card, i) => (
+              <div key={i} style={{
+                padding: '0.5rem 0.6rem', borderRadius: 'var(--radius-sm)',
+                background: card.active ? card.bg : 'rgba(255,255,255,0.02)',
+                border: `1px solid ${card.active ? card.border : 'var(--border)'}`,
+                transition: 'all 0.3s ease',
+              }}>
+                <div style={{ fontSize: '0.6rem', color: card.active ? card.color : 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {card.label}
+                </div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: card.active ? '#fff' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {card.active ? card.value : '—'}
+                </div>
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {card.active ? card.sub : ''}
+                </div>
               </div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {selectedFn.split('::')[1]}
-              </div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>PageRank: {result?.prScore || '2.8'}</div>
-            </div>
-
-            {/* Hop 1: Direct Callers */}
-            <div style={{
-              padding: '0.6rem', borderRadius: 'var(--radius-sm)',
-              background: stage >= 2 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.02)',
-              border: stage >= 2 ? '1px solid var(--accent)' : '1px solid var(--border)',
-              transition: 'all 0.3s ease',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase' }}>
-                Hop 1: Callers
-              </div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem' }}>
-                {result?.callers?.length ?? '...'} functions
-              </div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Direct Dependents</div>
-            </div>
-
-            {/* Hop 2: Public APIs */}
-            <div style={{
-              padding: '0.6rem', borderRadius: 'var(--radius-sm)',
-              background: stage >= 3 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.02)',
-              border: stage >= 3 ? '1px solid var(--danger)' : '1px solid var(--border)',
-              transition: 'all 0.3s ease',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700, textTransform: 'uppercase' }}>
-                Hop 2: APIs
-              </div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem' }}>
-                {result?.apis?.length ?? '...'} Endpoints
-              </div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Public Breach Risk</div>
-            </div>
-
-            {/* Hop 3: ADR Governance */}
-            <div style={{
-              padding: '0.6rem', borderRadius: 'var(--radius-sm)',
-              background: stage >= 4 ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.02)',
-              border: stage >= 4 ? '1px solid var(--info)' : '1px solid var(--border)',
-              transition: 'all 0.3s ease',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: 'var(--info)', fontWeight: 700, textTransform: 'uppercase' }}>
-                Governance
-              </div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem' }}>
-                {result?.adrs?.[0] ? 'ADR-001' : 'Compliant'}
-              </div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Architecture Contract</div>
-            </div>
+            ))}
           </div>
 
-          {/* Impact Detail Summary */}
-          {result && (
-            <div style={{
-              padding: '0.75rem', background: 'rgba(255,255,255,0.02)',
-              borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-              fontSize: '0.75rem',
-            }}>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-                Cascading Blast Scope Detected:
+          {/* Affected nodes list */}
+          {result && stage === 5 && (
+            <div style={{ padding: '0.6rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                Cascading Blast Scope:
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.4rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                 {result.callers.map((c, i) => (
-                  <span key={i} style={{
-                    padding: '0.2rem 0.5rem', borderRadius: 4, background: 'rgba(245,158,11,0.15)',
-                    color: 'var(--accent-light)', fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
-                  }}>
-                    {c}
-                  </span>
+                  <span key={i} style={{ padding: '0.1rem 0.35rem', borderRadius: 3, background: 'rgba(245,158,11,0.15)', color: '#fbbf24', fontFamily: 'var(--font-mono)', fontSize: '0.62rem' }}>{c}</span>
                 ))}
                 {result.apis.map((a, i) => (
-                  <span key={i} style={{
-                    padding: '0.2rem 0.5rem', borderRadius: 4, background: 'rgba(239,68,68,0.15)',
-                    color: 'var(--danger)', fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
-                  }}>
-                    🚨 {a}
-                  </span>
+                  <span key={i} style={{ padding: '0.1rem 0.35rem', borderRadius: 3, background: 'rgba(239,68,68,0.15)', color: 'var(--danger)', fontFamily: 'var(--font-mono)', fontSize: '0.62rem' }}>🚨 {a}</span>
                 ))}
               </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                Traversed via <strong>Index-Free Adjacency</strong> in {result.wallMs} ms. Relational SQL join overhead avoided: ~320ms.
+              <div style={{ marginTop: '0.35rem', fontSize: '0.62rem', color: 'var(--text-muted)' }}>
+                Traversed via <strong>Index-Free Adjacency</strong> in {result.wallMs}ms. SQL overhead avoided: ~320ms.
               </div>
             </div>
           )}

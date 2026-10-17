@@ -5,19 +5,20 @@ import {
   RiNetworkLine, RiRobot2Line, RiBarChart2Line,
   RiBugLine, RiBrainLine, RiHistoryLine,
   RiDashboardLine, RiGitBranchLine, RiFlashlightLine,
-  RiExternalLinkLine,
+  RiExternalLinkLine, RiGitPullRequestLine,
 } from 'react-icons/ri';
 import styles from './Sidebar.module.css';
 
 const NAV_ITEMS = [
-  { href: '/',                icon: RiDashboardLine,  label: 'Dashboard' },
-  { href: '/blast-radius',    icon: RiFlashlightLine, label: 'Blast Radius & Triage' },
-  { href: '/graph',           icon: RiNetworkLine,    label: 'Graph Visualizer' },
-  { href: '/agent',           icon: RiRobot2Line,     label: 'AI Agent' },
-  { href: '/algorithms',      icon: RiBarChart2Line,  label: 'Algorithms' },
-  { href: '/cve',             icon: RiBugLine,        label: 'CVE Explorer' },
-  { href: '/memory',          icon: RiHistoryLine,    label: 'Memory' },
-  { href: '/company-brain',   icon: RiBrainLine,      label: 'Company Brain' },
+  { href: '/',                icon: RiDashboardLine,        label: 'Dashboard' },
+  { href: '/pr-agent',        icon: RiGitPullRequestLine,   label: 'PR Graph Agent', badge: 'Track 01' },
+  { href: '/blast-radius',    icon: RiFlashlightLine,       label: 'Blast Radius & Triage' },
+  { href: '/graph',           icon: RiNetworkLine,          label: 'Graph Visualizer' },
+  { href: '/agent',           icon: RiRobot2Line,           label: 'AI Agent' },
+  { href: '/algorithms',      icon: RiBarChart2Line,        label: 'Algorithms' },
+  { href: '/cve',             icon: RiBugLine,              label: 'CVE Explorer' },
+  { href: '/memory',          icon: RiHistoryLine,          label: 'Memory' },
+  { href: '/company-brain',   icon: RiBrainLine,            label: 'Company Brain' },
 ];
 
 export function Sidebar() {
@@ -38,7 +39,7 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className={styles.nav}>
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+        {NAV_ITEMS.map(({ href, icon: Icon, label, badge }: any) => {
           const active = pathname === href || (href !== '/' && pathname.startsWith(href));
           return (
             <Link
@@ -48,7 +49,14 @@ export function Sidebar() {
               aria-current={active ? 'page' : undefined}
             >
               <Icon size={16} className={styles.navIcon} />
-              <span>{label}</span>
+              <span style={{ flex: 1 }}>{label}</span>
+              {badge && (
+                <span style={{
+                  fontSize: '0.55rem', padding: '0.1rem 0.3rem', borderRadius: 3,
+                  background: 'rgba(99,102,241,0.25)', color: '#a5b4fc',
+                  fontWeight: 700, letterSpacing: '0.03em', flexShrink: 0,
+                }}>{badge}</span>
+              )}
               {active && <div className={styles.activeBar} />}
             </Link>
           );
