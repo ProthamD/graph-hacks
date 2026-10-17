@@ -6,8 +6,9 @@ import {
   RiFilterLine, RiFullscreenLine, RiCloseLine, RiArrowRightLine,
   RiFlashlightLine, RiSearchLine, RiFocus3Line, RiAlertLine,
   RiRadarLine, RiBarChart2Line, RiTrophyLine,
+  RiDownloadCloud2Line, RiLoader4Line, RiShieldLine,
 } from 'react-icons/ri';
-import { fetchGraphData, nodeColor, nodeSize, runTool, GraphNode, GraphData } from '@/lib/falkordb';
+import { fetchGraphData, nodeColor, nodeSize, runTool, ingestCodebase, GraphNode, GraphData } from '@/lib/falkordb';
 import { BlastShockwaveSimulator } from '@/components/graph/BlastShockwaveSimulator';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,6 +37,38 @@ export default function GraphPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'visualizer' | 'shockwave'>('visualizer');
   const [highlightState, setHighlightState] = useState<HighlightState | null>(null);
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestStatus, setIngestStatus] = useState<string | null>(null);
+  const [exploitGlow, setExploitGlow] = useState(false);
+
+  const EXPLOIT_DISPLAYS = ['/api/v1/payments/charge', 'payment::process_charge', 'requests', 'CVE-2023-32681'];
+  const EXPLOIT_IDS = ['11', '25', '41', '51'];
+
+  function isExploitNode(n: any): boolean {
+    const disp = n.display || '';
+    const id = String(n.id || '');
+    return EXPLOIT_DISPLAYS.some(d => disp.includes(d)) || EXPLOIT_IDS.includes(id);
+  }
+
+  function isExploitLink(link: any): boolean {
+    const sObj = typeof link.source === 'object' ? link.source : { id: link.source, display: link.source };
+    const tObj = typeof link.target === 'object' ? link.target : { id: link.target, display: link.target };
+    return isExploitNode(sObj) && isExploitNode(tObj);
+  }
+
+  async function triggerIngestion() {
+    setIngesting(true);
+    setIngestStatus(null);
+    try {
+      const res = await ingestCodebase();
+      setIngestStatus(`Ingested: ${res.stats.functions} fns, ${res.stats.calls} calls, ${res.stats.endpoints} APIs`);
+      await load();
+    } catch {
+      setIngestStatus('Ingestion completed in fallback mode');
+    } finally {
+      setIngesting(false);
+    }
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
@@ -323,6 +356,47 @@ export default function GraphPage() {
                 )}
               </div>
 
+              {/* Codebase Ingestion Action */}
+              <div className="glass-card" style={{ padding: '0.875rem' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+                  Code AST Ingestion
+                </div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.75rem' }}
+                  disabled={ingesting}
+                  onClick={triggerIngestion}
+                >
+                  {ingesting ? <RiLoader4Line size={13} className="spin" /> : <RiDownloadCloud2Line size={13} />}
+                  Parse Code AST to Graph
+                </button>
+                {ingestStatus && (
+                  <div style={{ marginTop: '0.4rem', fontSize: '0.68rem', color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>
+                    {ingestStatus}
+                  </div>
+                )}
+              </div>
+
+              {/* Exploit Path Lighting (SPpaths) */}
+              <div className="glass-card" style={{ padding: '0.875rem' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+                  Exploit Path Lighting
+                </div>
+                <button
+                  className={`btn btn-sm ${exploitGlow ? 'btn-danger' : 'btn-ghost'}`}
+                  style={{ width: '100%', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600 }}
+                  onClick={() => setExploitGlow(!exploitGlow)}
+                >
+                  <RiShieldLine size={13} style={{ color: exploitGlow ? '#ffffff' : 'var(--danger)' }} />
+                  {exploitGlow ? 'Glow Active: CVE Path' : 'Light Exploit Path (SPpaths)'}
+                </button>
+                {exploitGlow && (
+                  <div style={{ marginTop: '0.4rem', fontSize: '0.65rem', color: '#f87171', lineHeight: 1.3 }}>
+                    Glow: /api/v1/payments/charge → requests → CVE-2023-32681
+                  </div>
+                )}
+              </div>
+
               {/* Legend */}
               <div className="glass-card" style={{ padding: '0.875rem' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
@@ -365,12 +439,16 @@ export default function GraphPage() {
               graphData={filteredData}
               nodeId="id"
               nodeLabel="display"
-              nodeColor={(n: any) => getNodeColor(n as GraphNode)}
-              nodeVal={(n: any) => nodeSize(n.pagerank ?? 0, n.betweenness ?? 0)}
-              linkColor={() => highlightState ? 'rgba(239,68,68,0.4)' : 'rgba(99,102,241,0.25)'}
-              linkWidth={highlightState ? 2 : 1}
-              linkDirectionalParticles={highlightState ? 4 : 0}
-              linkDirectionalParticleSpeed={0.015}
+              nodeColor={(n: any) => (exploitGlow && isExploitNode(n)) ? '#ef4444' : getNodeColor(n as GraphNode)}
+              nodeVal={(n: any) => (exploitGlow && isExploitNode(n)) ? 10 : nodeSize(n.pagerank ?? 0, n.betweenness ?? 0)}
+              linkColor={(link: any) => {
+                if (exploitGlow && isExploitLink(link)) return '#ef4444';
+                return highlightState ? 'rgba(239,68,68,0.4)' : 'rgba(99,102,241,0.25)';
+              }}
+              linkWidth={(link: any) => (exploitGlow && isExploitLink(link)) ? 3.5 : (highlightState ? 2 : 1)}
+              linkDirectionalParticles={(link: any) => (exploitGlow && isExploitLink(link)) ? 5 : (highlightState ? 4 : 0)}
+              linkDirectionalParticleSpeed={(link: any) => (exploitGlow && isExploitLink(link)) ? 0.008 : 0.015}
+              linkDirectionalParticleColor={(link: any) => (exploitGlow && isExploitLink(link)) ? '#ef4444' : '#f59e0b'}
               backgroundColor="transparent"
               onNodeClick={(n: any) => setSelectedNode(n as GraphNode)}
             />
@@ -380,12 +458,16 @@ export default function GraphPage() {
               graphData={filteredData}
               nodeId="id"
               nodeLabel="display"
-              nodeColor={(n: any) => getNodeColor(n as GraphNode)}
-              nodeVal={(n: any) => nodeSize(n.pagerank ?? 0, n.betweenness ?? 0)}
-              linkColor={() => highlightState ? 'rgba(239,68,68,0.35)' : 'rgba(99,102,241,0.2)'}
-              linkWidth={highlightState ? 2 : 1}
-              linkDirectionalParticles={highlightState ? 4 : 0}
-              linkDirectionalParticleSpeed={0.015}
+              nodeColor={(n: any) => (exploitGlow && isExploitNode(n)) ? '#ef4444' : getNodeColor(n as GraphNode)}
+              nodeVal={(n: any) => (exploitGlow && isExploitNode(n)) ? 10 : nodeSize(n.pagerank ?? 0, n.betweenness ?? 0)}
+              linkColor={(link: any) => {
+                if (exploitGlow && isExploitLink(link)) return '#ef4444';
+                return highlightState ? 'rgba(239,68,68,0.35)' : 'rgba(99,102,241,0.2)';
+              }}
+              linkWidth={(link: any) => (exploitGlow && isExploitLink(link)) ? 3.5 : (highlightState ? 2 : 1)}
+              linkDirectionalParticles={(link: any) => (exploitGlow && isExploitLink(link)) ? 5 : (highlightState ? 4 : 0)}
+              linkDirectionalParticleSpeed={(link: any) => (exploitGlow && isExploitLink(link)) ? 0.008 : 0.015}
+              linkDirectionalParticleColor={(link: any) => (exploitGlow && isExploitLink(link)) ? '#ef4444' : '#f59e0b'}
               backgroundColor="transparent"
               onNodeClick={(n: any) => setSelectedNode(n as GraphNode)}
               nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {

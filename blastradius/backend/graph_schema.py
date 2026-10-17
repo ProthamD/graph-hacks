@@ -78,4 +78,9 @@ def bootstrap(graph_name: str = "blastradius") -> None:
 
 if __name__ == "__main__":
     name = sys.argv[1] if len(sys.argv) > 1 else "blastradius"
-    bootstrap(name)
+    try:
+        bootstrap(name)
+    except Exception as e:
+        print(f"[BlastRadius] Could not connect to FalkorDB on port 6379: {e}")
+        print("[BlastRadius] Please start the FalkorDB container first: docker-compose up -d")
+        sys.exit(1)

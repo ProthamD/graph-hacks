@@ -25,12 +25,20 @@ interface Health {
 
 const QUICK_ACTIONS = [
   {
+    href: '/blast-radius',
+    icon: RiFlashlightLine,
+    label: 'Run PR Blast Radius',
+    desc: 'Autonomous multi-hop impact triage',
+    color: '#6366f1',
+    badge: 'Track 01 Core',
+  },
+  {
     href: '/graph',
     icon: RiNetworkLine,
     label: 'Explore 3D Force Graph',
     desc: 'Live D3 visualizer with shockwave',
     color: '#10b981',
-    badge: 'Track 01 Core',
+    badge: '3D WebGL',
   },
   {
     href: '/algorithms',

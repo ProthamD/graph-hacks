@@ -14,13 +14,25 @@ from falkordb import FalkorDB
 try:
     from fastmcp import FastMCP
 except ImportError:
-    from mcp.server.fastmcp import FastMCP
+    try:
+        from mcp.server.fastmcp import FastMCP
+    except (ImportError, ModuleNotFoundError):
+        from mcp.server import MCPServer as FastMCP
 
 # ── Connection ────────────────────────────────────────────────────────────────
-_db = FalkorDB(
-    host=os.getenv("FALKORDB_HOST", "localhost"),
-    port=int(os.getenv("FALKORDB_PORT", 6379)),
-)
+_db = None
+
+def _get_db():
+    global _db
+    if _db is None:
+        try:
+            _db = FalkorDB(
+                host=os.getenv("FALKORDB_HOST", "localhost"),
+                port=int(os.getenv("FALKORDB_PORT", 6379)),
+            )
+        except Exception:
+            return None
+    return _db
 
 mcp = FastMCP("BlastRadius-FalkorDB-Algos", version="1.0.0")
 
@@ -34,27 +46,47 @@ def _exec(
     ro: bool = True,
 ) -> dict:
     """Execute a Cypher query and return rows + telemetry."""
-    g = _db.select_graph(graph)
-    t0 = time.perf_counter()
-    if ro:
-        res = g.ro_query(cypher, params or {})
-    else:
-        res = g.query(cypher, params or {})
-    wall_ms = round((time.perf_counter() - t0) * 1000, 2)
-
-    # Grab EXPLAIN plan (best-effort)
+    db = _get_db()
+    if db is None:
+        return {
+            "rows": [],
+            "engine_ms": 0.0,
+            "wall_ms": 0.0,
+            "explain": "FalkorDB connection unavailable (ensure FalkorDB container is running on port 6379)",
+            "graph": graph,
+            "error": "falkordb_offline",
+        }
     try:
-        plan = str(g.explain(cypher))[:800]
-    except Exception:
-        plan = "unavailable"
+        g = db.select_graph(graph)
+        t0 = time.perf_counter()
+        if ro:
+            res = g.ro_query(cypher, params or {})
+        else:
+            res = g.query(cypher, params or {})
+        wall_ms = round((time.perf_counter() - t0) * 1000, 2)
 
-    return {
-        "rows": [list(r) for r in (res.result_set or [])],
-        "engine_ms": float(getattr(res, "run_time_ms", wall_ms)),
-        "wall_ms": wall_ms,
-        "explain": plan,
-        "graph": graph,
-    }
+        # Grab EXPLAIN plan (best-effort)
+        try:
+            plan = str(g.explain(cypher))[:800]
+        except Exception:
+            plan = "unavailable"
+
+        return {
+            "rows": [list(r) for r in (res.result_set or [])],
+            "engine_ms": float(getattr(res, "run_time_ms", wall_ms)),
+            "wall_ms": wall_ms,
+            "explain": plan,
+            "graph": graph,
+        }
+    except Exception as e:
+        return {
+            "rows": [],
+            "engine_ms": 0.0,
+            "wall_ms": 0.0,
+            "explain": f"Execution error: {str(e)}",
+            "graph": graph,
+            "error": str(e),
+        }
 
 
 # ── TOOL 1: Blast Radius ──────────────────────────────────────────────────────
@@ -324,8 +356,11 @@ def clone_pr_sandbox(
     Safe to run impact analysis on sandbox without touching production graph.
     """
     sandbox = f"{base_graph}_pr_{pr_id}"
+    db = _get_db()
+    if db is None:
+        return {"sandbox": sandbox, "status": "simulated", "base": base_graph}
     try:
-        _db._client.execute_command("GRAPH.COPY", base_graph, sandbox)
+        db._client.execute_command("GRAPH.COPY", base_graph, sandbox)
         return {"sandbox": sandbox, "status": "ready", "base": base_graph}
     except Exception as e:
         # May already exist — that's fine

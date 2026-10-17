@@ -4,13 +4,14 @@ import { usePathname } from 'next/navigation';
 import {
   RiNetworkLine, RiRobot2Line, RiBarChart2Line,
   RiBugLine, RiBrainLine, RiHistoryLine,
-  RiDashboardLine, RiGitBranchLine, RiSettings3Line,
+  RiDashboardLine, RiGitBranchLine, RiFlashlightLine,
   RiExternalLinkLine,
 } from 'react-icons/ri';
 import styles from './Sidebar.module.css';
 
 const NAV_ITEMS = [
   { href: '/',                icon: RiDashboardLine,  label: 'Dashboard' },
+  { href: '/blast-radius',    icon: RiFlashlightLine, label: 'Blast Radius & Triage' },
   { href: '/graph',           icon: RiNetworkLine,    label: 'Graph Visualizer' },
   { href: '/agent',           icon: RiRobot2Line,     label: 'AI Agent' },
   { href: '/algorithms',      icon: RiBarChart2Line,  label: 'Algorithms' },

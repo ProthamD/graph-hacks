@@ -454,5 +454,10 @@ def seed(db: FalkorDB) -> None:
 
 
 if __name__ == "__main__":
-    db = FalkorDB(host=HOST, port=PORT)
-    seed(db)
+    try:
+        db = FalkorDB(host=HOST, port=PORT)
+        seed(db)
+    except Exception as e:
+        print(f"[Seed] Failed to connect to FalkorDB on {HOST}:{PORT}: {e}")
+        print("[Seed] Please ensure FalkorDB container is running: docker-compose up -d")
+        sys.exit(1)

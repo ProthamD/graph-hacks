@@ -53,17 +53,17 @@ export function BlastShockwaveSimulator({ onHighlightPath, onResetHighlight }: B
 
       const row = res?.rows?.[0] || [];
       const parsed: ShockwaveResult = {
-        target: row[0] || selectedFn,
+        target: typeof row[0] === 'string' ? row[0] : (String(row[0] || '') || selectedFn),
         prScore: typeof row[1] === 'number' ? row[1] : 2.8,
         community: typeof row[2] === 'number' ? row[2] : 1,
         callers: Array.isArray(row[3]) && row[3].length > 0
-          ? row[3]
+          ? (row[3] as string[])
           : (selectedFn === 'auth::validate_jwt' ? ['gateway::route_request', 'payment::process_charge'] : ['gateway::route_request']),
         apis: Array.isArray(row[4]) && row[4].length > 0
-          ? row[4]
+          ? (row[4] as string[])
           : (selectedFn === 'auth::validate_jwt' ? ['/api/v1/auth/login', '/api/v1/payments/charge'] : ['/api/v1/auth/login']),
         adrs: Array.isArray(row[5]) && row[5].length > 0
-          ? row[5]
+          ? (row[5] as string[])
           : ['ADR-001 Zero-Trust Auth'],
         callerCount: typeof row[6] === 'number' ? row[6] : 2,
         wallMs: res?.wall_ms || 1.15,

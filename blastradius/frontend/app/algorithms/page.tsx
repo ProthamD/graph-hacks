@@ -7,6 +7,7 @@ import {
 } from 'react-icons/ri';
 import { runTool } from '@/lib/falkordb';
 import { SqlVsGraphBenchmark } from '@/components/algorithms/SqlVsGraphBenchmark';
+import { VectorVsGraphDiff } from '@/components/VectorVsGraphDiff';
 
 const ALGORITHMS = [
   {
@@ -127,10 +128,11 @@ export default function AlgorithmsPage() {
         })}
       </div>
 
-      {/* TAB 1: FalkorDB vs SQL Benchmark */}
+      {/* TAB 1: FalkorDB vs SQL Benchmark & Vector vs Graph Diff */}
       {activeTab === 'benchmark' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <SqlVsGraphBenchmark />
+          <VectorVsGraphDiff />
 
           {/* Quick info banner */}
           <div style={{

@@ -109,8 +109,93 @@ LiteLLM Agent (gpt-4o / gemini / ollama)
 
 ## Graph Schema
 
-Node labels: `Function`, `Service`, `API_Endpoint`, `Package`, `CVE`, `Developer`, `Commit`, `PastIncident`, `ArchitectureDoc`, `AgentEpisode`, `ProceduralPlaybook`
+- **Node labels:** `Function`, `Service`, `API_Endpoint`, `Package`, `CVE`, `Developer`, `Commit`, `PastIncident`, `ArchitectureDoc`, `AgentEpisode`, `ProceduralPlaybook`
+- **Relationship types:** `CALLS`, `ROUTES_TO`, `USES_PACKAGE`, `HAS_VULNERABILITY`, `AUTHORED`, `MODIFIED`, `CAUSED_BY`, `INVESTIGATED`, `REMEDIATES`, `GOVERNS`, `CONTAINS`, `NEXT`
+- **Indexes:** Range (all primary keys) + HNSW Vector (Function, ArchitectureDoc, PastIncident) + BM25 Full-Text (PastIncident, CVE, ArchitectureDoc)
 
-Relationship types: `CALLS`, `ROUTES_TO`, `USES_PACKAGE`, `HAS_VULNERABILITY`, `AUTHORED`, `MODIFIED`, `CAUSED_BY`, `INVESTIGATED`, `REMEDIATES`, `GOVERNS`, `CONTAINS`, `NEXT`
+## Core FalkorDB Cypher Queries & Graph Algorithms (Rule 10)
 
-Indexes: Range (all primary keys) + HNSW Vector (Function, ArchitectureDoc, PastIncident) + BM25 Full-Text (PastIncident, CVE, ArchitectureDoc)
+The product depends on the following exact FalkorDB Cypher queries and graph algorithms:
+
+### 1. Algorithm Categories 1 & 2: PageRank & Betweenness Centrality
+```cypher
+// 1. PageRank Centrality: Ranks critical architectural nodes
+CALL algo.pageRank('Function', 'CALLS') YIELD node, score
+SET node.pagerank_score = score;
+
+// 2. Betweenness Centrality: Identifies bottleneck bridge functions
+CALL algo.betweenness({nodeLabels: ['Function'], relationshipTypes: ['CALLS']})
+YIELD node, score
+SET node.betweenness_score = score
+RETURN node.id AS fn_id, node.pagerank_score AS pagerank, score AS betweenness
+ORDER BY betweenness DESC, pagerank DESC
+LIMIT 15;
+```
+
+### 2. Algorithm Category 3: Shortest Path CVE Exploit Reachability (`algo.SPpaths`)
+```cypher
+// Proves shortest path from public API perimeter to a vulnerable package
+MATCH (ep:API_Endpoint {is_public: true}),
+      (pkg:Package {name: $pkg_name})-[:HAS_VULNERABILITY]->(cve:CVE {cve_id: $cve_id})
+CALL algo.SPpaths({
+    sourceNode: ep,
+    targetNode: pkg,
+    relTypes: ['ROUTES_TO', 'CALLS', 'USES_PACKAGE'],
+    weightProp: 'weight',
+    relDirection: 'outgoing',
+    pathCount: 3
+}) YIELD path, pathWeight
+RETURN ep.route AS exposed_api,
+       cve.cve_id AS cve,
+       cve.cvss AS cvss_score,
+       pathWeight AS hop_count,
+       [n IN nodes(path) | coalesce(n.route, n.id, n.name)] AS exploit_chain
+ORDER BY hop_count ASC;
+```
+
+### 3. Algorithm Categories 4 & 5: WCC & Community Detection (`algo.labelPropagation`)
+```cypher
+// 4. Weakly Connected Components: Finds disconnected microservices / dead code
+CALL algo.WCC({nodeLabels: ['Function'], relationshipTypes: ['CALLS']})
+YIELD node, componentId
+SET node.wcc_id = componentId;
+
+// 5. Label Propagation (CDLP): Clusters dense microservice communities
+CALL algo.labelPropagation({nodeLabels: ['Function'], relationshipTypes: ['CALLS']})
+YIELD node, communityId
+SET node.community_id = communityId
+RETURN communityId,
+       count(node) AS cluster_size,
+       collect(node.name)[0..8] AS cluster_members
+ORDER BY cluster_size DESC
+LIMIT 20;
+```
+
+### 4. Multi-Hop Blast Radius Traversal & ADR Governance Check
+```cypher
+MATCH (target:Function {id: $fn_id})
+OPTIONAL MATCH path = (caller:Function)-[:CALLS*1..$hops]->(target)
+OPTIONAL MATCH (ep:API_Endpoint)-[:ROUTES_TO]->(caller)
+OPTIONAL MATCH (adr:ArchitectureDoc)-[:GOVERNS]->(target)
+RETURN target.id AS modified_fn,
+       target.pagerank_score AS pr_score,
+       collect(DISTINCT caller.id) AS callers,
+       collect(DISTINCT ep.route) AS impacted_apis,
+       collect(DISTINCT adr.doc_id) AS adr_constraints,
+       count(DISTINCT caller) AS caller_count;
+```
+
+### 5. PR Sandbox Cloning via `GRAPH.COPY`
+```redis
+GRAPH.COPY blastradius blastradius_pr_142
+```
+
+## Hackathon Submission Checklist (Rule 10)
+
+- [x] **Public Source-Code Repository:** https://github.com/prothamd/graph-hacks
+- [x] **Primary Graph Database:** FalkorDB (All traversals, algorithms, and triage decisions depend on FalkorDB)
+- [x] **Track Entered:** Track 01 (Agents That Act on Connected Data) + Track 02 + Track 03
+- [x] **Graph Data Model & Cypher Queries:** Fully documented in README and runnable via FastMCP
+- [x] **Local Setup Instructions:** Complete `docker-compose.yml` and `start.ps1` / `start.sh`
+- [ ] **Demo Video (3–5 min):** Record working walkthrough showing the UI, FalkorDB Browser, and PR Triage action
+

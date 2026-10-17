@@ -48,10 +48,10 @@ export function JudgeTourModal({ isOpen, onClose }: JudgeTourModalProps) {
       });
       const rows = res?.rows?.[0] || [];
       setDemoResult({
-        target: rows[0] || 'auth::validate_jwt',
-        callers: Array.isArray(rows[2]) ? rows[2] : ['gateway::route_request', 'payment::process_charge'],
-        apis: Array.isArray(rows[3]) ? rows[3] : ['/api/v1/auth/login', '/api/v1/payments/charge'],
-        adrs: Array.isArray(rows[4]) ? rows[4] : ['ADR-001'],
+        target: typeof rows[0] === 'string' ? rows[0] : (String(rows[0] || '') || 'auth::validate_jwt'),
+        callers: Array.isArray(rows[2]) ? (rows[2] as string[]) : ['gateway::route_request', 'payment::process_charge'],
+        apis: Array.isArray(rows[3]) ? (rows[3] as string[]) : ['/api/v1/auth/login', '/api/v1/payments/charge'],
+        adrs: Array.isArray(rows[4]) ? (rows[4] as string[]) : ['ADR-001'],
         latency: res?.wall_ms || 1.18,
       });
     } catch {
