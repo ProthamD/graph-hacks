@@ -135,6 +135,17 @@ class GitHubPRRequest(BaseModel):
     graph: str = "blastradius"
 
 
+@app.get("/")
+async def root():
+    return {
+        "service": "BlastRadius API",
+        "status": "online",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
 # ── Health ─────────────────────────────────────────────────────────────────────
 
 @app.get("/health")
