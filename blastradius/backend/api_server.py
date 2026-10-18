@@ -42,25 +42,61 @@ except ImportError:
 HOST = os.getenv("FALKORDB_HOST", "localhost")
 PORT = int(os.getenv("FALKORDB_PORT", 6379))
 _db = None
+_db_error = None
+_db_connected_host = None
 
-def is_port_open(host: str, port: int, timeout: float = 0.5) -> bool:
-    import socket
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
-        return False
 
 def get_db():
-    global _db
-    if _db is None and FalkorDB is not None:
-        if not is_port_open(HOST, PORT):
-            return None
+    global _db, _db_error, _db_connected_host
+    if _db is not None:
         try:
-            _db = FalkorDB(host=HOST, port=PORT, socket_connect_timeout=1.0, socket_timeout=2.0)
+            _db.select_graph(DEFAULT_GRAPH).ro_query("RETURN 1")
+            return _db
         except Exception:
-            return None
-    return _db
+            _db = None
+
+    if FalkorDB is None:
+        _db_error = "falkordb Python package is not installed"
+        return None
+
+    configured_host = os.getenv("FALKORDB_HOST", "").strip()
+    configured_port = int(os.getenv("FALKORDB_PORT", 6379))
+
+    candidates = []
+    if configured_host:
+        candidates.append(configured_host)
+    candidates.extend([
+        "falkordb.railway.internal",
+        "falkordb",
+        "FalkorDB.railway.internal",
+        "FalkorDB",
+        "localhost",
+        "127.0.0.1",
+    ])
+    seen = set()
+    hosts_to_try = [h for h in candidates if not (h in seen or seen.add(h))]
+
+    errors = []
+    for h in hosts_to_try:
+        try:
+            client = FalkorDB(host=h, port=configured_port, socket_connect_timeout=2.0, socket_timeout=3.0)
+            g = client.select_graph(DEFAULT_GRAPH)
+            g.ro_query("RETURN 1")
+            _db = client
+            _db_connected_host = h
+            _db_error = None
+            print(f"[BlastRadius] Successfully connected to FalkorDB at {h}:{configured_port}")
+            try:
+                from agent.orchestrator import set_db as orch_set_db
+                orch_set_db(client)
+            except Exception:
+                pass
+            return _db
+        except Exception as e:
+            errors.append(f"{h}:{configured_port} ({type(e).__name__}: {str(e)})")
+
+    _db_error = " | ".join(errors)
+    return None
 
 
 @asynccontextmanager
@@ -146,6 +182,15 @@ async def root():
     }
 
 
+def is_port_open(host: str, port: int, timeout: float = 0.5) -> bool:
+    import socket
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 # ── Health ─────────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -159,11 +204,20 @@ async def health():
         try:
             g = db.select_graph(DEFAULT_GRAPH)
             r = g.ro_query("RETURN 1")
-            status["falkordb"] = {"status": "ok", "port": PORT}
+            status["falkordb"] = {
+                "status": "ok",
+                "connected_host": _db_connected_host,
+                "port": int(os.getenv("FALKORDB_PORT", 6379)),
+            }
         except Exception as e:
             status["falkordb"] = {"status": "error", "detail": str(e)}
     else:
-        status["falkordb"] = {"status": "offline", "detail": "FalkorDB container not reachable"}
+        status["falkordb"] = {
+            "status": "offline",
+            "detail": _db_error or "FalkorDB container not reachable",
+            "configured_host": os.getenv("FALKORDB_HOST", "unset"),
+            "configured_port": os.getenv("FALKORDB_PORT", 6379),
+        }
 
     # MCP servers & track health
     import httpx

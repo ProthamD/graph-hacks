@@ -34,16 +34,28 @@ def is_port_open(host: str, port: int, timeout: float = 0.05) -> bool:
     except OSError:
         return False
 
+def set_db(client):
+    global _db
+    _db = client
+
 def get_db():
     global _db
-    if _db is None:
-        if not is_port_open(HOST, PORT):
-            return None
+    if _db is not None:
+        return _db
+    try:
+        from api_server import get_db as api_get_db
+        _db = api_get_db()
+        if _db is not None:
+            return _db
+    except Exception:
+        pass
+    if FalkorDB is not None:
         try:
-            _db = FalkorDB(host=HOST, port=PORT, socket_connect_timeout=0.2, socket_timeout=0.3)
+            _db = FalkorDB(host=HOST, port=PORT, socket_connect_timeout=2.0, socket_timeout=3.0)
+            return _db
         except Exception:
             return None
-    return _db
+    return None
 
 DEFAULT_GRAPH = os.getenv("DEFAULT_GRAPH", "blastradius")
 
