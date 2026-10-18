@@ -1,6 +1,6 @@
 # 🎬 BlastRadius — Official 3–5 Minute Hackathon Video & Demo Script
 **WeMakeDevs × FalkorDB Graph Hacks (Oct 15–18, 2026)**  
-**Team:** Zero Degree (`HBQZVK`) · 
+**Team:** Zero Degree (`HBQZVK`)
 **Track:** Track 01 — Agents That Act on Connected Data *(Primary)* · *Includes Track 02 (Graphiti) & Track 03 (QueryWeaver)*
 
 ---
@@ -32,7 +32,7 @@
 ### **Scene 1: Introduction & The Core Problem (0:00 – 0:35)**
 - **What to show on screen:** Open browser to Home Dashboard (`/`).
 - **Speaker Script:**
-  > *"Hello judges! I'm Pratham Dey from Team Zero Degree, and this is **BlastRadius** — an autonomous codebase, PR triage, and SecOps graph agent built entirely on top of FalkorDB's native graph database and official MCP stack for Track 01.*
+  > *"Hello! We are team Zero Degree, and this is **BlastRadius** — an autonomous codebase, PR triage, and SecOps graph agent built entirely on top of FalkorDB's native graph database and official MCP stack for Track 01.*
   >
   > *In modern microservices, single-line code changes trigger silent cascading failures across services. Traditional Vector RAG fails miserably here because embeddings cluster semantic text similarities, completely blind to structural call chains. BlastRadius proves the hackathon golden rule: the product cannot exist without FalkorDB."*
 
