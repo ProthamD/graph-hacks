@@ -1,6 +1,6 @@
 # 🎬 BlastRadius — Official 3–5 Minute Hackathon Video & Demo Script
 **WeMakeDevs × FalkorDB Graph Hacks (Oct 15–18, 2026)**  
-**Team:** Zero Degree (`HBQZVK`) · **Solo Architect:** Pratham Dey (`@prothamd`)  
+**Team:** Zero Degree (`HBQZVK`) · 
 **Track:** Track 01 — Agents That Act on Connected Data *(Primary)* · *Includes Track 02 (Graphiti) & Track 03 (QueryWeaver)*
 
 ---
