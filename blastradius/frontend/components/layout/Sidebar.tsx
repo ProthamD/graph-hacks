@@ -5,12 +5,12 @@ import {
   RiNetworkLine, RiRobot2Line, RiBarChart2Line,
   RiBugLine, RiBrainLine, RiHistoryLine,
   RiDashboardLine, RiGitBranchLine, RiFlashlightLine,
-  RiExternalLinkLine, RiGitPullRequestLine,
+  RiExternalLinkLine, RiGitPullRequestLine, RiCompass3Line,
 } from 'react-icons/ri';
 import styles from './Sidebar.module.css';
 
 const NAV_ITEMS = [
-  { href: '/',                icon: RiDashboardLine,        label: 'Dashboard' },
+  { href: '/dashboard',       icon: RiDashboardLine,        label: 'Dashboard' },
   { href: '/pr-agent',        icon: RiGitPullRequestLine,   label: 'PR Graph Agent', badge: 'Track 01' },
   { href: '/blast-radius',    icon: RiFlashlightLine,       label: 'Blast Radius & Triage' },
   { href: '/graph',           icon: RiNetworkLine,          label: 'Graph Visualizer' },
@@ -26,15 +26,17 @@ export function Sidebar() {
 
   return (
     <aside className={styles.sidebar} role="navigation" aria-label="Main navigation">
-      {/* Logo */}
+      {/* Logo links back to Landing page */}
       <div className={styles.logo}>
-        <div className={styles.logoIcon}>
-          <RiGitBranchLine size={18} />
-        </div>
-        <div>
-          <div className={styles.logoName}>BlastRadius</div>
-          <div className={styles.logoSub}>Graph Intelligence</div>
-        </div>
+        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+          <div className={styles.logoIcon}>
+            <RiGitBranchLine size={18} />
+          </div>
+          <div>
+            <div className={styles.logoName}>BlastRadius</div>
+            <div className={styles.logoSub}>Graph Intelligence</div>
+          </div>
+        </Link>
       </div>
 
       {/* Nav */}
@@ -65,6 +67,15 @@ export function Sidebar() {
 
       {/* Footer links */}
       <div className={styles.footer}>
+        <Link
+          href="/"
+          className={styles.footerLink}
+          style={{ color: 'var(--primary-light)', fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}
+          aria-label="Return to Landing Page"
+        >
+          <RiCompass3Line size={13} />
+          Landing Page
+        </Link>
         <a
           href="http://localhost:3000"
           target="_blank"

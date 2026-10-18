@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { TopBar } from '@/components/layout/TopBar';
+import { AppShell } from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
   title: 'BlastRadius — FalkorDB Graph Intelligence',
-  description: 'Autonomous codebase, PR triage and SecOps graph agent powered by FalkorDB',
+  description: 'Autonomous codebase impact analysis, PR triage and SecOps graph agent powered by FalkorDB',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,13 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
-        <div className="app-layout">
-          <Sidebar />
-          <TopBar />
-          <main className="main-content fade-in">
-            {children}
-          </main>
-        </div>
+        <AppShell>
+          {children}
+        </AppShell>
         {/* WCAG 2.2 AA — live region for screen readers */}
         <div
           id="aria-live-region"
