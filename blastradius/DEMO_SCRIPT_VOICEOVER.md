@@ -16,7 +16,8 @@
 | Property | Value |
 | :--- | :--- |
 | **File** | `Screen Recording 2026-10-18 195813.mp4` |
-| **Total Duration** | 4 min 01 sec |
+| **Active Screen Recording** | 1 min 59 sec (3,592 frames @ 30 fps — all UI actions occur here) |
+| **Container / Audio Duration** | 4 min 01 sec (silent audio track; video stream concludes at 1:59) |
 | **Resolution** | 1918 × 920 @ 30 fps |
 | **Audio Track** | Silent — clean for voiceover overdub |
 | **Key UI Chapters** | 7 distinct sections observed |
@@ -87,11 +88,11 @@
 ---
 
 ### **[1:49 – 1:59] Scene 7: Impact Tiers & Autonomous `GRAPH.COPY` Sandbox Action**
-*Screen clicks "Impact Tiers" tab (showing d1/d2/d3 groupings), then "Autonomous Actions" tab showing `GRAPH.COPY` sandbox creation and lead reviewer auto-assignment*
+*Screen clicks "Impact Tiers (d1 / d2 / d3)" tab showing depth analysis, then "Autonomous Actions" tab showing `GRAPH.COPY` sandbox creation, passing GitHub check run, and commit-ownership reviewer assignment*
 
-> *"Our agent groups impacted functions into depth tiers $d_1$, $d_2$, and $d_3$ for graduated review policies.*
+> *"Our agent groups impacted functions into depth tiers — Tier 1 direct callers, Tier 2 transitive callers, and Tier 3 public perimeter endpoints — for graduated review policies.*
 >
-> *And it takes decisive action: executing FalkorDB `GRAPH.COPY` to create an isolated sandbox `blastradius_pr_PR-142` so integration tests run safely without polluting production data.*
+> *And it takes decisive action: creating an isolated PR sandbox graph via native FalkorDB GRAPH.COPY for zero-impact simulation, posting a passing GitHub check run, and auto-assigning lead reviewer Alice Chen directly from the commit ownership graph.*
 >
 > *This is BlastRadius — autonomous, graph-native intelligence for modern codebases. Thank you!"*
 
