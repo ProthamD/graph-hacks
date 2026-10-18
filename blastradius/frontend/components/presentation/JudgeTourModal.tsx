@@ -83,7 +83,7 @@ export function JudgeTourModal({ isOpen, onClose }: JudgeTourModalProps) {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
             <div className="glass-card" style={{ padding: '0.875rem', textAlign: 'center' }}>
               <div style={{ color: 'var(--primary-light)', fontSize: '1.5rem', fontWeight: 800 }}>95</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Topology Nodes Seeded</div>
@@ -273,10 +273,10 @@ export function JudgeTourModal({ isOpen, onClose }: JudgeTourModalProps) {
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
       background: 'rgba(4, 7, 15, 0.85)', backdropFilter: 'blur(10px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'min(1.5rem, 3vw)',
     }}>
       <div style={{
-        width: '100%', maxWidth: 680, background: 'var(--bg-surface)',
+        width: '100%', maxWidth: 680, maxHeight: '90vh', background: 'var(--bg-surface)',
         border: '1px solid rgba(99,102,241,0.3)', borderRadius: 'var(--radius-xl)',
         boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 35px rgba(99,102,241,0.2)',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -286,6 +286,7 @@ export function JudgeTourModal({ isOpen, onClose }: JudgeTourModalProps) {
           padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           background: 'linear-gradient(90deg, rgba(99,102,241,0.12) 0%, transparent 100%)',
+          flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <div style={{
@@ -314,7 +315,7 @@ export function JudgeTourModal({ isOpen, onClose }: JudgeTourModalProps) {
         </div>
 
         {/* Content Area */}
-        <div style={{ padding: '1.5rem', minHeight: 330 }}>
+        <div style={{ padding: '1.25rem 1.5rem', minHeight: 280, flex: 1, overflowY: 'auto' }}>
           <div style={{ marginBottom: '1.25rem' }}>
             <span style={{
               display: 'inline-block', fontSize: '0.65rem', fontWeight: 700,
@@ -339,6 +340,7 @@ export function JudgeTourModal({ isOpen, onClose }: JudgeTourModalProps) {
         <div style={{
           padding: '1rem 1.5rem', borderTop: '1px solid var(--border)',
           background: 'rgba(0,0,0,0.25)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          flexWrap: 'wrap', gap: '0.75rem', flexShrink: 0,
         }}>
           {/* Progress dots */}
           <div style={{ display: 'flex', gap: '0.4rem' }}>

@@ -52,14 +52,16 @@ export default function CompanyBrainPage() {
 
   return (
     <div className="page-container fade-in">
-      <div className="page-header">
-        <h1 className="page-title">
-          <RiBrainLine size={22} style={{ color: 'var(--accent)' }} />
-          Company Brain
-        </h1>
-        <p className="page-subtitle">
-          Track 03 — Developer ownership, ADR governance, commit history traversal via FalkorDB
-        </p>
+      <div className="responsive-header">
+        <div>
+          <h1 className="page-title">
+            <RiBrainLine size={22} style={{ color: 'var(--accent)' }} />
+            Company Brain
+          </h1>
+          <p className="page-subtitle">
+            Track 03 — Developer ownership, ADR governance, commit history traversal via FalkorDB
+          </p>
+        </div>
       </div>
 
       {/* Track 03 info */}
@@ -104,7 +106,7 @@ export default function CompanyBrainPage() {
                 const owned = Array.isArray(row[4]) ? row[4] : [];
                 return (
                   <div key={i} style={{ padding: '0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', marginBottom: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                       <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--info-subtle)', border: '1px solid rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <RiUser3Line size={15} style={{ color: 'var(--info)' }} />
                       </div>
@@ -164,7 +166,7 @@ export default function CompanyBrainPage() {
                 const count = Number(row[6] ?? 0);
                 return (
                   <div key={i} style={{ padding: '0.875rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem', flexWrap: 'wrap' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--danger)', fontWeight: 700 }}>{fn}</span>
                       <span className="pill pill-danger">{count} callers</span>
                       <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: 'var(--text-muted)' }}>PR: {pr}</span>

@@ -10,15 +10,23 @@
   flex-direction: column;
   z-index: 50;
   overflow: hidden;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: space-between;
   padding: 1rem 1rem;
   border-bottom: 1px solid var(--border);
   height: var(--topbar-height);
+  flex-shrink: 0;
+}
+
+.logoBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .logoIcon {
@@ -48,6 +56,26 @@
   text-transform: uppercase;
 }
 
+.closeButton {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.closeButton:hover {
+  color: var(--text-primary);
+  background: var(--primary-subtle);
+  border-color: var(--border-hover);
+}
+
 .nav {
   flex: 1;
   display: flex;
@@ -55,6 +83,7 @@
   gap: 0.125rem;
   padding: 0.75rem 0.625rem;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .navItem {
@@ -115,6 +144,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .footerLink {
@@ -130,4 +160,44 @@
 
 .footerLink:hover {
   color: var(--primary-light);
+}
+
+.backdrop {
+  display: none;
+}
+
+/* ── Mobile / Tablet Responsive Drawer ───────────────────────────────────── */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+    width: 270px;
+    z-index: 60;
+  }
+
+  .sidebar.mobileOpen {
+    transform: translateX(0);
+  }
+
+  .closeButton {
+    display: inline-flex;
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 7, 15, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 55;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .backdrop.backdropOpen {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }

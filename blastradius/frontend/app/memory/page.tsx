@@ -63,22 +63,20 @@ export default function MemoryPage() {
 
   return (
     <div className="page-container fade-in">
-      <div className="page-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 className="page-title">
-              <RiHistoryLine size={22} style={{ color: 'var(--success)' }} />
-              Episodic Memory
-            </h1>
-            <p className="page-subtitle">
-              Track 02 — Agent episodes from graphiti-mcp · Semantic + full-text search across incidents
-            </p>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
-            <RiRefreshLine size={13} className={loading ? 'spin' : ''} />
-            Refresh
-          </button>
+      <div className="responsive-header">
+        <div>
+          <h1 className="page-title">
+            <RiHistoryLine size={22} style={{ color: 'var(--success)' }} />
+            Episodic Memory
+          </h1>
+          <p className="page-subtitle">
+            Track 02 — Agent episodes from graphiti-mcp · Semantic + full-text search across incidents
+          </p>
         </div>
+        <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
+          <RiRefreshLine size={13} className={loading ? 'spin' : ''} />
+          Refresh
+        </button>
       </div>
 
       {/* Search bar */}
@@ -86,13 +84,14 @@ export default function MemoryPage() {
         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.625rem' }}>
           Full-text + Semantic Search across Past Incidents (BM25 + HNSW Vector)
         </div>
-        <div style={{ display: 'flex', gap: '0.625rem' }}>
+        <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
           <input
             className="input"
             placeholder="e.g. timeout, auth failure, memory leak..."
             value={searchKw}
             onChange={e => setSearchKw(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && search()}
+            style={{ flex: '1 1 200px' }}
           />
           <button className="btn btn-primary btn-sm" onClick={search} disabled={searching || !searchKw}>
             {searching ? <RiLoader4Line size={14} className="spin" /> : <RiSearchLine size={14} />}
@@ -155,8 +154,8 @@ export default function MemoryPage() {
                   background: 'var(--primary)', border: '2px solid var(--bg-base)',
                   boxShadow: '0 0 8px var(--primary-glow)',
                 }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ flex: '1 1 240px', minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
                       <RiRobot2Line size={13} style={{ color: 'var(--primary-light)' }} />
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--primary-light)' }}>

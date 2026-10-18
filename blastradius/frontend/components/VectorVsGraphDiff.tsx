@@ -184,7 +184,7 @@ export function VectorVsGraphDiff() {
       </div>
 
       {/* Side-by-Side Comparison */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
         {/* Left: Traditional Vector RAG */}
         <div style={{
           background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.2)',

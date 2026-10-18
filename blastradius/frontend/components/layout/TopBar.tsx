@@ -2,10 +2,11 @@
 import { useEffect, useState } from 'react';
 import {
   RiCircleFill, RiLoader4Line, RiGitBranchLine, RiFlashlightLine,
-  RiTrophyLine,
+  RiTrophyLine, RiMenuLine, RiCloseLine,
 } from 'react-icons/ri';
 import styles from './TopBar.module.css';
 import { JudgeTourModal } from '@/components/presentation/JudgeTourModal';
+import { useNav } from './NavContext';
 
 interface ServerStatus {
   falkordb?: { status: string };
@@ -20,6 +21,7 @@ export function TopBar() {
   const [status, setStatus] = useState<ServerStatus>({});
   const [loading, setLoading] = useState(true);
   const [tourOpen, setTourOpen] = useState(false);
+  const { mobileOpen, toggleMobile } = useNav();
 
   useEffect(() => {
     async function checkHealth() {
@@ -57,30 +59,28 @@ export function TopBar() {
     <>
       <header className={styles.topbar} role="banner">
         <div className={styles.left}>
-          <RiFlashlightLine size={14} style={{ color: 'var(--accent)' }} />
-          <span className={styles.tagline}>BlastRadius</span>
-          <span className={styles.sep}>·</span>
-          <span className={styles.sub}>FalkorDB Graph Agent</span>
+          {/* Mobile hamburger menu toggle */}
+          <button
+            className={styles.menuButton}
+            onClick={toggleMobile}
+            aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <RiCloseLine size={20} /> : <RiMenuLine size={20} />}
+          </button>
+
+          <div className={styles.brandGroup}>
+            <RiFlashlightLine size={14} style={{ color: 'var(--accent)' }} />
+            <span className={styles.tagline}>BlastRadius</span>
+            <span className={styles.sep}>·</span>
+            <span className={styles.sub}>FalkorDB Graph Agent</span>
+          </div>
 
           {/* Interactive Judge Walkthrough Button */}
           <button
             onClick={() => setTourOpen(true)}
-            style={{
-              marginLeft: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.3rem 0.75rem',
-              borderRadius: 'var(--radius-full)',
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(245,158,11,0.25))',
-              border: '1px solid rgba(245,158,11,0.4)',
-              color: '#fff',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 0 12px rgba(245,158,11,0.2)',
-              transition: 'all 0.2s ease',
-            }}
+            className={styles.tourButton}
+            aria-label="Open Judge Demo Tour"
           >
             <RiTrophyLine size={13} style={{ color: 'var(--accent)' }} />
             <span>Judge Demo Tour</span>
@@ -91,7 +91,7 @@ export function TopBar() {
           {/* Server status pills */}
           <div className={styles.servers}>
             {servers.map(({ key, label }) => (
-              <div key={key} className={styles.serverPill} aria-label={`${label} status`}>
+              <div key={key} className={styles.serverPill} aria-label={`${label} status: ${statusColor(key)}`}>
                 {loading ? (
                   <RiLoader4Line size={10} className={styles.spin} />
                 ) : (

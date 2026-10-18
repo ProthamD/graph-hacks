@@ -148,6 +148,21 @@ pre {
   min-height: calc(100vh - var(--topbar-height));
   padding: 1.5rem;
   overflow-y: auto;
+  transition: margin-left var(--transition);
+}
+
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 0;
+    padding: 1.25rem 1rem;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: 0.875rem 0.625rem;
+  }
 }
 
 /* ── Glass Card ───────────────────────────────────────────────────────────── */
@@ -311,6 +326,13 @@ pre {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 0.25rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+.tab-bar::-webkit-scrollbar {
+  display: none;
 }
 .tab {
   flex: 1;
@@ -324,6 +346,8 @@ pre {
   transition: all var(--transition);
   border: none;
   background: transparent;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .tab.active {
   background: var(--primary);
@@ -335,12 +359,159 @@ pre {
   background: var(--primary-subtle);
 }
 
+/* ── Responsive Flex Utilities ────────────────────────────────────────────── */
+.responsive-split {
+  display: flex;
+  gap: 1rem;
+}
+@media (max-width: 1024px) {
+  .responsive-split {
+    flex-direction: column;
+  }
+}
+
+.responsive-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 640px) {
+  .responsive-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Fullscreen App Layouts (PR Agent, Graph, Chat) ──────────────────────── */
+.fullscreen-app-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: calc(100vh - var(--topbar-height) - 2.5rem);
+  overflow: hidden;
+}
+@media (max-width: 1024px) {
+  .fullscreen-app-container {
+    height: auto;
+    min-height: calc(100vh - var(--topbar-height));
+    overflow: visible;
+  }
+}
+
+.pr-agent-split {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+@media (max-width: 1024px) {
+  .pr-agent-split {
+    flex-direction: column;
+    min-height: auto;
+  }
+}
+
+.pr-agent-left {
+  width: 380px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  overflow-y: auto;
+}
+@media (max-width: 1024px) {
+  .pr-agent-left {
+    width: 100%;
+    overflow-y: visible;
+  }
+}
+
+.pr-agent-right {
+  flex: 1;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #0a0f1d 0%, var(--bg-base) 100%);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+}
+@media (max-width: 768px) {
+  .pr-agent-right {
+    min-height: 420px;
+  }
+}
+
+.graph-control-split {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+@media (max-width: 1024px) {
+  .graph-control-split {
+    flex-direction: column;
+    min-height: auto;
+  }
+}
+
+.graph-control-left {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+}
+@media (max-width: 1024px) {
+  .graph-control-left {
+    width: 100%;
+    overflow-y: visible;
+  }
+}
+
+.chat-app-split {
+  display: flex;
+  gap: 1rem;
+  height: calc(100vh - var(--topbar-height) - 3rem);
+}
+@media (max-width: 1024px) {
+  .chat-app-split {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - var(--topbar-height) - 2rem);
+  }
+}
+
+.chat-suggestions-panel {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+@media (max-width: 1024px) {
+  .chat-suggestions-panel {
+    width: 100%;
+  }
+}
+
 /* ── Section Headers ──────────────────────────────────────────────────────── */
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 .section-title {
   font-size: 1.125rem;
@@ -359,8 +530,9 @@ pre {
 @media (max-width: 1024px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-3 { grid-template-columns: 1fr 1fr; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
 }
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
 }
 

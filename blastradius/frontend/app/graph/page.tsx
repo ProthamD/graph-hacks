@@ -243,15 +243,15 @@ export default function GraphPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: 'calc(100vh - var(--topbar-height) - 2.5rem)' }}>
+    <div className="fullscreen-app-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: 'calc(100vh - var(--topbar-height) - 2.5rem)' }}>
       {/* Top action toolbar */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '0.5rem 1rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border)',
+        border: '1px solid var(--border)', flexWrap: 'wrap', gap: '0.75rem',
       }}>
         {/* Left: tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className={`btn btn-sm ${activeTab === 'visualizer' ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => setActiveTab('visualizer')}
@@ -269,19 +269,19 @@ export default function GraphPage() {
         </div>
 
         {/* Center: search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 280, position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 200px', minWidth: 180, position: 'relative' }}>
           <RiSearchLine size={14} style={{ position: 'absolute', left: 10, color: 'var(--text-muted)' }} />
           <input
             className="input"
             value={searchQuery}
             onChange={e => handleSearch(e.target.value)}
             placeholder="Search function, service, CVE..."
-            style={{ paddingLeft: '2rem', height: 32, fontSize: '0.75rem' }}
+            style={{ paddingLeft: '2rem', height: 32, fontSize: '0.75rem', width: '100%' }}
           />
         </div>
 
         {/* Right: 2D/3D toggle & stats */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           {highlightState && (
             <button
               className="btn btn-outline btn-sm"
@@ -320,9 +320,9 @@ export default function GraphPage() {
       </div>
 
       {/* Main Content Layout */}
-      <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minHeight: 0 }}>
+      <div className="graph-control-split">
         {/* Left Control Panel */}
-        <div style={{ width: 320, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto' }}>
+        <div className="graph-control-left">
           {activeTab === 'shockwave' ? (
             <BlastShockwaveSimulator
               onHighlightPath={handleHighlightPath}
@@ -462,7 +462,7 @@ export default function GraphPage() {
           flex: 1, borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border)', overflow: 'hidden',
           background: 'radial-gradient(ellipse at center, #0a0f1d 0%, var(--bg-base) 100%)',
-          position: 'relative',
+          position: 'relative', minHeight: 450,
         }}>
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '1rem' }}>

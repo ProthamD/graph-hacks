@@ -1,10 +1,17 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
+import { NavProvider } from '@/components/layout/NavContext';
 
 export const metadata: Metadata = {
   title: 'BlastRadius — FalkorDB Graph Intelligence',
   description: 'Autonomous codebase impact analysis, PR triage and SecOps graph agent powered by FalkorDB',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,9 +22,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
-        <AppShell>
-          {children}
-        </AppShell>
+        <NavProvider>
+          <AppShell>
+            {children}
+          </AppShell>
+        </NavProvider>
         {/* WCAG 2.2 AA — live region for screen readers */}
         <div
           id="aria-live-region"

@@ -345,10 +345,10 @@ export default function PRAgentPage() {
   const graphDisplayData = { nodes: graphData.nodes.map(n => ({ ...n })), links: graphLinks };
 
   return (
-    <div className="page-container fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: 'calc(100vh - var(--topbar-height) - 2.5rem)', overflow: 'hidden' }}>
+    <div className="page-container fade-in fullscreen-app-container">
 
       {/* ── Top header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.2rem' }}>
             <RiBrainLine size={22} style={{ color: 'var(--primary-light)' }} />
@@ -369,10 +369,10 @@ export default function PRAgentPage() {
       </div>
 
       {/* ── Main split layout ── */}
-      <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minHeight: 0 }}>
+      <div className="pr-agent-split">
 
         {/* ─── LEFT: PR input + agent reasoning ─── */}
-        <div style={{ width: 380, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem', overflowY: 'auto' }}>
+        <div className="pr-agent-left">
 
           {/* PR Selector */}
           <div className="glass-card" style={{ padding: '1rem' }}>
@@ -660,46 +660,40 @@ export default function PRAgentPage() {
         </div>
 
         {/* ─── RIGHT: Live graph with blast radius highlight & MCP trace ─── */}
-        <div style={{
-          flex: 1, borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border)', overflow: 'hidden',
-          background: 'radial-gradient(ellipse at center, #0a0f1d 0%, var(--bg-base) 100%)',
-          position: 'relative',
-          display: 'flex', flexDirection: 'column',
-        }}>
+        <div className="pr-agent-right">
 
           {/* Top Tab Bar */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0.6rem 1rem', borderBottom: '1px solid var(--border)',
             background: 'rgba(10,15,29,0.85)', backdropFilter: 'blur(10px)',
-            zIndex: 20, flexShrink: 0,
+            zIndex: 20, flexShrink: 0, flexWrap: 'wrap', gap: '0.5rem',
           }}>
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%', paddingBottom: 2 }}>
               <button
                 className={`btn btn-sm ${activeTab === 'graph' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', height: 'auto', gap: '0.35rem' }}
+                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', height: 'auto', gap: '0.35rem', flexShrink: 0 }}
                 onClick={() => setActiveTab('graph')}
               >
                 <RiNodeTree size={13} /> 2D Graph Visualizer
               </button>
               <button
                 className={`btn btn-sm ${activeTab === 'mcp' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', height: 'auto', gap: '0.35rem' }}
+                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', height: 'auto', gap: '0.35rem', flexShrink: 0 }}
                 onClick={() => setActiveTab('mcp')}
               >
                 <RiCpuLine size={13} /> FalkorDB MCP Tools {triageData?.mcp_tool_trace ? `(${triageData.mcp_tool_trace.length})` : ''}
               </button>
               <button
                 className={`btn btn-sm ${activeTab === 'depth' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', height: 'auto', gap: '0.35rem' }}
+                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', height: 'auto', gap: '0.35rem', flexShrink: 0 }}
                 onClick={() => setActiveTab('depth')}
               >
                 <RiRouteLine size={13} /> Impact Tiers (d1 / d2 / d3)
               </button>
               <button
                 className={`btn btn-sm ${activeTab === 'actions' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', height: 'auto', gap: '0.35rem' }}
+                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', height: 'auto', gap: '0.35rem', flexShrink: 0 }}
                 onClick={() => setActiveTab('actions')}
               >
                 <RiShieldLine size={13} /> Autonomous Actions
@@ -707,7 +701,7 @@ export default function PRAgentPage() {
             </div>
 
             {triageData && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                 <span style={{
                   fontSize: '0.68rem', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: 999,
                   background: `${verdictColor(triageData.verdict)}20`,
@@ -725,7 +719,7 @@ export default function PRAgentPage() {
 
           {/* TAB 1: 2D Graph Visualizer */}
           {activeTab === 'graph' && (
-            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 450 }}>
               {/* Graph Legend overlay */}
               {blastState && (
                 <div style={{

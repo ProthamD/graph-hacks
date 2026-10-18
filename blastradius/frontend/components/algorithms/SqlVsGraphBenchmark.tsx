@@ -69,7 +69,7 @@ export function SqlVsGraphBenchmark() {
 
       {/* Benchmark Action & Speedup Hero */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem', alignItems: 'center',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', alignItems: 'center',
         padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--radius-md)', marginBottom: '1rem',
       }}>
         <div>

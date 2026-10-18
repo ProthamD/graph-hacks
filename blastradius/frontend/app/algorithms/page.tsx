@@ -105,6 +105,7 @@ export default function AlgorithmsPage() {
       <div style={{
         display: 'flex', gap: '0.5rem', marginBottom: '1.25rem',
         borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem',
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%',
       }}>
         {[
           { key: 'benchmark', label: '⚡ FalkorDB vs SQL Benchmark', icon: RiSpeedLine },
@@ -119,7 +120,7 @@ export default function AlgorithmsPage() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
               className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ gap: '0.4rem', fontSize: '0.78rem' }}
+              style={{ gap: '0.4rem', fontSize: '0.78rem', flexShrink: 0, whiteSpace: 'nowrap' }}
             >
               <Icon size={14} />
               {tab.label}

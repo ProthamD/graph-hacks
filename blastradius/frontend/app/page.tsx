@@ -499,7 +499,7 @@ export default function LandingPage() {
 
             {/* Code Comparison */}
             <div style={{ marginTop: '2.5rem' }}>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                 <button
                   className={`btn btn-sm ${activeCodeTab === 'cypher' ? 'btn-primary' : 'btn-ghost'}`}
                   onClick={() => setActiveCodeTab('cypher')}

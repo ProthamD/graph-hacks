@@ -50,12 +50,12 @@ export default function BlastRadiusPage() {
     <div className="page-container fade-in">
       {/* Header */}
       <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.35rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
           <RiFlashlightLine size={24} style={{ color: 'var(--accent)' }} />
           <h1 className="page-title" style={{ fontSize: '1.25rem', margin: 0 }}>
             PR Blast Radius & Autonomous Triage
           </h1>
-          <span className="pill pill-primary" style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>
+          <span className="pill pill-primary" style={{ fontSize: '0.7rem' }}>
             Track 01: Agents That Act on Connected Data
           </span>
         </div>
@@ -71,6 +71,7 @@ export default function BlastRadiusPage() {
           background: 'linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(168,85,247,0.12) 100%)',
           border: '1px solid rgba(99,102,241,0.4)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: '0.75rem',
           transition: 'all 0.2s ease', cursor: 'pointer',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

@@ -157,7 +157,7 @@ export default function CVEPage() {
       {/* Exploit chain result */}
       {result && (
         <div className="glass-card fade-in" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div className="section-title">
               <RiArrowRightLine size={16} style={{ color: 'var(--danger)' }} />
               Exploit Chain Results

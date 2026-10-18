@@ -108,7 +108,7 @@ export default function DashboardPage() {
   return (
     <div className="page-container fade-in">
       {/* Header */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="responsive-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
             <Link
@@ -137,7 +137,7 @@ export default function DashboardPage() {
             Autonomous codebase impact analysis · FalkorDB Graph Hacks (Track 01 + Track 02 + Track 03)
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-primary btn-sm"
             onClick={() => setTourOpen(true)}
@@ -163,8 +163,9 @@ export default function DashboardPage() {
         background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(245,158,11,0.08) 50%, rgba(16,185,129,0.08) 100%)',
         border: '1px solid rgba(99,102,241,0.25)', marginBottom: '1.5rem',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '1rem',
       }}>
-        <div>
+        <div style={{ flex: '1 1 280px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
             <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 4, background: 'var(--primary)', color: '#fff', textTransform: 'uppercase' }}>
               Track 01 Focus
@@ -180,7 +181,7 @@ export default function DashboardPage() {
             Every multi-hop blast radius, centrality ranking, CVE shortest path, and memory lookup runs live on FalkorDB via sub-millisecond sparse adjacency matrix pointer chasing.
           </p>
         </div>
-        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+        <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: 140 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.3rem', fontWeight: 900, color: 'var(--success)' }}>
             &lt; 1.2 ms
           </div>
@@ -293,7 +294,7 @@ export default function DashboardPage() {
           Track 01 Exploration Suites
         </div>
       </div>
-      <div className="grid-4" style={{ marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {QUICK_ACTIONS.map(({ href, icon: Icon, label, desc, color, badge }) => (
           <Link key={href} href={href} style={{ textDecoration: 'none' }}>
             <div className="glass-card" style={{

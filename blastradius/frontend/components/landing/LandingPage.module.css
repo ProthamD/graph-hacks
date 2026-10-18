@@ -842,6 +842,9 @@
   .heroSubtitle {
     font-size: 1rem;
   }
+  .ctaTitle {
+    font-size: 2rem;
+  }
   .problemGrid, .solutionGrid, .featuresGrid, .archGrid {
     grid-template-columns: 1fr;
   }
@@ -851,5 +854,49 @@
   .footerContent {
     flex-direction: column;
     text-align: center;
+  }
+  .benchmarkHeader {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+  }
+  .benchmarkTable th, .benchmarkTable td {
+    padding: 0.75rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.6rem 0.85rem;
+  }
+  .container {
+    padding: 0 1rem;
+  }
+  .heroTitle {
+    font-size: 1.85rem;
+  }
+  .ctaTitle {
+    font-size: 1.6rem;
+  }
+  .ctaBanner {
+    padding: 2.5rem 1.25rem;
+  }
+  .tourBtn span {
+    display: none;
+  }
+  .tourBtn {
+    padding: 0.5rem 0.65rem;
+  }
+  .launchBtn {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.78rem;
+  }
+  .heroLaunchMain {
+    padding: 0.8rem 1.5rem;
+    font-size: 0.95rem;
+  }
+  .heroSecondaryCta {
+    padding: 0.8rem 1.25rem;
+    font-size: 0.88rem;
   }
 }

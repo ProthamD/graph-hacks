@@ -255,17 +255,17 @@ export default function AgentPage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - var(--topbar-height) - 3rem)', gap: '1rem' }}>
+    <div className="chat-app-split">
       {/* Chat area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
           <RiRobot2Line size={18} style={{ color: 'var(--primary)' }} />
           <h1 className="page-title" style={{ fontSize: '1rem' }}>BlastRadius AI Agent</h1>
           <span className="pill pill-primary" style={{ marginLeft: 'auto' }}>FalkorDB · LiteLLM</span>
         </div>
 
         {/* Messages */}
-        <div className="glass-card" style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div className="glass-card" style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 380 }}>
           {messages.length === 0 && (
             <div style={{ margin: 'auto', textAlign: 'center' }}>
               <RiRobot2Line size={40} style={{ color: 'var(--primary)', marginBottom: '0.75rem' }} />
@@ -354,7 +354,7 @@ export default function AgentPage() {
       </div>
 
       {/* Right panel — suggestions + trace */}
-      <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="chat-suggestions-panel">
         <div className="glass-card" style={{ padding: '0.875rem' }}>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.625rem' }}>
             Suggested Queries
