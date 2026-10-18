@@ -56,19 +56,14 @@ def _make_client(host: str, port: int):
 
 
 def _ping_client(client) -> bool:
-    """Test connection using Redis PING — works even on a fresh empty database."""
+    """Test connection — use list_graphs() which works even on a fresh empty database."""
     try:
-        client._client.ping()
-        return True
-    except Exception:
-        pass
-    # Fallback: try RETURN 1 (works if graph exists)
-    try:
-        client.select_graph(DEFAULT_GRAPH).ro_query("RETURN 1")
+        client.list_graphs()
         return True
     except Exception as e:
-        # "Invalid graph operation on empty key" means connected but graph not yet created — that's OK!
-        if "empty key" in str(e) or "unknown" in str(e).lower() or "does not exist" in str(e).lower():
+        err = str(e)
+        # "empty key" / "does not exist" means we ARE connected but graph not created yet — that's fine
+        if "empty key" in err or "does not exist" in err.lower() or "unknown" in err.lower():
             return True
         return False
 
@@ -228,7 +223,7 @@ async def health():
     db = get_db()
     if db:
         try:
-            db._client.ping()
+            db.list_graphs()  # works even on empty FalkorDB
             status["falkordb"] = {
                 "status": "ok",
                 "connected_host": _db_connected_host,
