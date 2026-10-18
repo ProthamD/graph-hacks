@@ -41,9 +41,18 @@ except ImportError:
 
 HOST = os.getenv("FALKORDB_HOST", "localhost")
 PORT = int(os.getenv("FALKORDB_PORT", 6379))
+PASSWORD = os.getenv("FALKORDB_PASSWORD", "") or os.getenv("REDIS_PASSWORD", "")
 _db = None
 _db_error = None
 _db_connected_host = None
+
+
+def _make_client(host: str, port: int):
+    """Create a FalkorDB client, with password if set."""
+    kwargs = dict(host=host, port=port, socket_connect_timeout=2.0, socket_timeout=3.0)
+    if PASSWORD:
+        kwargs["password"] = PASSWORD
+    return FalkorDB(**kwargs)
 
 
 def get_db():
@@ -79,7 +88,7 @@ def get_db():
     errors = []
     for h in hosts_to_try:
         try:
-            client = FalkorDB(host=h, port=configured_port, socket_connect_timeout=2.0, socket_timeout=3.0)
+            client = _make_client(h, configured_port)
             g = client.select_graph(DEFAULT_GRAPH)
             g.ro_query("RETURN 1")
             _db = client

@@ -22,17 +22,10 @@ from falkordb import FalkorDB
 
 HOST = os.getenv("FALKORDB_HOST", "localhost")
 PORT = int(os.getenv("FALKORDB_PORT", 6379))
+PASSWORD = os.getenv("FALKORDB_PASSWORD", "") or os.getenv("REDIS_PASSWORD", "")
 MODEL = os.getenv("LITELLM_MODEL", "gemini/gemini-3.5-flash")
 
 _db = None
-
-def is_port_open(host: str, port: int, timeout: float = 0.05) -> bool:
-    import socket
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
-        return False
 
 def set_db(client):
     global _db
@@ -51,7 +44,10 @@ def get_db():
         pass
     if FalkorDB is not None:
         try:
-            _db = FalkorDB(host=HOST, port=PORT, socket_connect_timeout=2.0, socket_timeout=3.0)
+            kwargs = dict(host=HOST, port=PORT, socket_connect_timeout=2.0, socket_timeout=3.0)
+            if PASSWORD:
+                kwargs["password"] = PASSWORD
+            _db = FalkorDB(**kwargs)
             return _db
         except Exception:
             return None
