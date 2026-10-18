@@ -43,7 +43,7 @@ HOST = os.getenv("FALKORDB_HOST", "localhost")
 PORT = int(os.getenv("FALKORDB_PORT", 6379))
 _db = None
 
-def is_port_open(host: str, port: int, timeout: float = 0.05) -> bool:
+def is_port_open(host: str, port: int, timeout: float = 0.5) -> bool:
     import socket
     try:
         with socket.create_connection((host, port), timeout=timeout):
@@ -57,7 +57,7 @@ def get_db():
         if not is_port_open(HOST, PORT):
             return None
         try:
-            _db = FalkorDB(host=HOST, port=PORT, socket_connect_timeout=0.2, socket_timeout=0.3)
+            _db = FalkorDB(host=HOST, port=PORT, socket_connect_timeout=1.0, socket_timeout=2.0)
         except Exception:
             return None
     return _db
@@ -70,6 +70,21 @@ async def lifespan(app: FastAPI):
         bootstrap()
     except Exception as e:
         print(f"[Warning] Schema bootstrap: {e}")
+
+    # Auto-seed if database is empty (e.g. freshly deployed on Railway)
+    try:
+        db = get_db()
+        if db:
+            g = db.select_graph(DEFAULT_GRAPH)
+            r = g.ro_query("MATCH (n) RETURN count(n) AS cnt")
+            count = r.result_set[0][0] if (r and r.result_set) else 0
+            if count == 0:
+                print("[BlastRadius] Database is empty, auto-seeding demo graph...")
+                from seeds.seed_demo import seed
+                seed(db)
+                print("[BlastRadius] Auto-seed complete!")
+    except Exception as e:
+        print(f"[Warning] Auto-seed check: {e}")
     yield
 
 
@@ -805,6 +820,21 @@ async def list_graphs():
     return {"graphs": ["blastradius", "blastradius_pr_142"]}
 
 
+@app.post("/api/seed")
+async def seed_demo_data():
+    """Seed demo data into FalkorDB on demand."""
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=503, detail="FalkorDB is offline or not reachable")
+    try:
+        from seeds.seed_demo import seed
+        seed(db)
+        return {"status": "ok", "message": "Demo graph successfully seeded into FalkorDB"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8090)
+    listen_port = int(os.getenv("PORT", 8090))
+    uvicorn.run(app, host="0.0.0.0", port=listen_port)
